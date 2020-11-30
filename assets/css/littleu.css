@@ -1,0 +1,20 @@
+/* Move down content because we have a fixed navbar that is 3.5rem tall */
+body {
+  padding-top: 3.5rem;
+}
+
+.list-group {
+  padding-top: 0rem;
+}
+
+.list-group-item {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+}
