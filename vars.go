@@ -3,5 +3,5 @@ package main
 import "sync"
 
 var (
-	mu sync.Mutex
+	mu sync.RWMutex
 )

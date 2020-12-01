@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -29,17 +30,40 @@ func shorturl(c *gin.Context) {
 	var url URL
 	_ = c.ShouldBind(&url)
 
-	(*dao).save(url)
+	id, _ := (*dao).save(url)
+	shortURL := idToShortURL(id, chars)
+	// idGiven := shortURLToID(shortURL, chars)
+	// fmt.Printf("Url given: [%d]\n", idGiven)
 
 	c.HTML(
 		http.StatusOK,
 		"url_shorten_summary.html",
 		// Pass the data that the page uses
 		gin.H{
-			"title": "Home",
-			"url":   url.URL,
+			"title":     "Home",
+			"url":       url.URL,
+			"short_url": shortURL,
 		},
 	)
+}
+
+func redirectShortURL(c *gin.Context) {
+	shortURLParam := c.Param("url")
+	if shortURLParam == "" {
+		fmt.Println("valiendo verga")
+	}
+
+	// fmt.Println("Holis ... ")
+	fmt.Printf("This -> [%s]\n", shortURLParam)
+	id := shortURLToID(shortURLParam, chars)
+
+	// fmt.Println(id)
+	urlFromDB, err := (*dao).findByID(id)
+	if err != nil {
+
+	} else {
+		c.Redirect(http.StatusMovedPermanently, urlFromDB.URL)
+	}
 }
 
 func getArticle(c *gin.Context) {
