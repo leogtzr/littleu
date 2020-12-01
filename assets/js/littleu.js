@@ -1,4 +1,29 @@
+function copyToClipboard(element) {
+    console.log('I am fucking here ... ');
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val($(element).text()).select();
+    document.execCommand("copy");
+    $temp.remove();
+}
+
 $(document).ready(function () {
+
+    function copyToClipboard() {
+        console.log('I am here .... ');
+        /* Get the text field */
+        var copyText = document.getElementById("url_clipboard");
+
+        /* Select the text field */
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+        /* Copy the text inside the text field */
+        document.execCommand("copy");
+
+        /* Alert the copied text */
+        alert("Copied the text: " + copyText.value);
+    }
 
     // $('#alert').hide();
     // $('#alert_error').hide();

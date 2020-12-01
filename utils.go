@@ -1,6 +1,10 @@
 package main
 
-import "unicode/utf8"
+import (
+	"unicode/utf8"
+
+	"github.com/spf13/viper"
+)
 
 var (
 	chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -43,6 +47,18 @@ func shortURLToID(shortURL string, mChars []rune) int {
 		}
 	}
 	return id
+}
+
+func readConfig(filename, configPath string, defaults map[string]interface{}) (*viper.Viper, error) {
+	v := viper.New()
+	for key, value := range defaults {
+		v.SetDefault(key, value)
+	}
+	v.SetConfigName(filename)
+	v.AddConfigPath(configPath)
+	v.SetConfigType("env")
+	err := v.ReadInConfig()
+	return v, err
 }
 
 // 	id := 12345

@@ -16,6 +16,12 @@
 
   <!-- Custom styles for this template -->
   <link href="/assets/css/littleu.css" rel="stylesheet">
+
+  <script src="/assets/js/popper.min.js"></script>
+  <script src="/assets/js/bootstrap.min.js"></script>
+  <script src="/assets/js/jquery-3.3.1.min.js"></script>
+  <script src="/assets/js/littleu.js"></script>
+
 </head>
 
 <body>
@@ -66,6 +72,8 @@
 
         <div class="url_short_summary">
           <h1>OK ... url shorten ... {{ .url }}</h1>
+          <span id="url_clipboard"><strong>{{ .url }}</strong></span>
+          <button onclick="copyToClipboard('#url_clipboard')" type="button" class="btn btn-outline-success">COPY</button>
         </div>
 
 
@@ -104,15 +112,8 @@
   </main>
 
   <footer class="container">
-    <p>&copy; littleu 2021 v3</p>
+    <p>&copy; littleu 2021</p>
   </footer>
 
-  <!-- Bootstrap core JavaScript
-================================================== -->
-  <!-- Placed at the end of the document so the pages load faster -->
-  <script src="/assets/js/popper.min.js"></script>
-  <script src="/assets/js/bootstrap.min.js"></script>
-  <script src="/assets/js/jquery-3.3.1.min.js"></script>
-  <script src="/assets/js/littleu.js"></script>
 </body>
 </html>

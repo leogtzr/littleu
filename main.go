@@ -1,14 +1,14 @@
-// main.go
-
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+
+	"github.com/spf13/viper"
 
 	"github.com/gin-gonic/gin"
 )
-
-var router *gin.Engine
 
 // Render one of HTML, JSON or CSV based on the 'Accept' header of the request
 // If the header doesn't specify this, HTML is rendered, provided that
@@ -30,7 +30,27 @@ func render(c *gin.Context, data gin.H, templateName string) {
 	}
 }
 
+var (
+	router    *gin.Engine
+	envConfig *viper.Viper
+	dao       *DBHandler
+)
+
+func init() {
+	var err error
+	envConfig, err = readConfig("config.env", ".", map[string]interface{}{
+		"dbengine": "memory",
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+	// Initialize DB:
+	dao = factory(envConfig.GetString("dbengine"))
+}
+
 func main() {
+
 	// Set Gin to production mode
 	gin.SetMode(gin.ReleaseMode)
 

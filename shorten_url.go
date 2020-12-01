@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -28,12 +27,9 @@ func showIndexPage(c *gin.Context) {
 func shorturl(c *gin.Context) {
 
 	var url URL
-	if c.ShouldBind(&url) == nil {
-		fmt.Println(url)
-		fmt.Println(":)")
-	}
+	_ = c.ShouldBind(&url)
 
-	fmt.Println("hmmm, I am here ... ")
+	(*dao).save(url)
 
 	c.HTML(
 		http.StatusOK,
