@@ -1,9 +1,8 @@
 package main
 
 func initializeRoutes() {
-	router.GET("/u/:url", redirectShortURL)
-
 	// Handle the index route
+	router.GET("/u/:url", redirectShortURL)
 	router.GET("/", showIndexPage)
 
 	// TODO: remove the following.

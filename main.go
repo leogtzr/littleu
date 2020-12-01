@@ -31,20 +31,25 @@ func render(c *gin.Context, data gin.H, templateName string) {
 }
 
 var (
-	router    *gin.Engine
-	envConfig *viper.Viper
-	dao       *DBHandler
+	router     *gin.Engine
+	envConfig  *viper.Viper
+	dao        *DBHandler
+	serverPort string
 )
 
 func init() {
 	var err error
 	envConfig, err = readConfig("config.env", ".", map[string]interface{}{
 		"dbengine": "memory",
+		"port":     ":8080",
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
+
+	serverPort = envConfig.GetString("port")
+
 	// Initialize DB:
 	dao = factory(envConfig.GetString("dbengine"))
 }
@@ -67,5 +72,5 @@ func main() {
 	initializeRoutes()
 
 	// Start serving the applications
-	router.Run()
+	router.Run(serverPort)
 }

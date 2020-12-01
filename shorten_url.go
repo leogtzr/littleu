@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Showmax/go-fqdn"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,14 +36,24 @@ func shorturl(c *gin.Context) {
 	// idGiven := shortURLToID(shortURL, chars)
 	// fmt.Printf("Url given: [%d]\n", idGiven)
 
+	fqdn, err := fqdn.FqdnHostname()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	domain := fmt.Sprintf("%s%s", fqdn, serverPort)
+	littleuLink := fmt.Sprintf("%s/u/%s", domain, shortURL)
+
 	c.HTML(
 		http.StatusOK,
 		"url_shorten_summary.html",
 		// Pass the data that the page uses
 		gin.H{
-			"title":     "Home",
-			"url":       url.URL,
-			"short_url": shortURL,
+			"title":        "Home",
+			"url":          url.URL,
+			"short_url":    shortURL,
+			"domain":       domain,
+			"littleu_link": littleuLink,
 		},
 	)
 }
