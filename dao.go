@@ -6,10 +6,9 @@ import (
 )
 
 // DBHandler ...
-// TODO: fix the following interface.
 type DBHandler interface {
 	save(u URL) (int, error)
-	findAll() ([]URL, error)
+	findAll() (map[int]string, error)
 	findByID(id int) (URL, error)
 }
 
@@ -50,10 +49,8 @@ func (im InMemoryImpl) save(u URL) (int, error) {
 	return id, nil
 }
 
-func (im InMemoryImpl) findAll() ([]URL, error) {
-	// TODO: implement this.
-	var urls []URL
-	return urls, nil
+func (im InMemoryImpl) findAll() (map[int]string, error) {
+	return im.DB.db, nil
 }
 
 func (im InMemoryImpl) findByID(id int) (URL, error) {

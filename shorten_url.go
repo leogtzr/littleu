@@ -1,11 +1,11 @@
-// TODO: rename this file accordingly.
+// c.AbortWithError(http.StatusNotFound, err)
+// c.AbortWithStatus(http.StatusNotFound)
 package main
 
 import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 
 	"github.com/Showmax/go-fqdn"
 	"github.com/gin-gonic/gin"
@@ -34,8 +34,6 @@ func shorturl(c *gin.Context) {
 
 	id, _ := (*dao).save(url)
 	shortURL := idToShortURL(id, chars)
-	// idGiven := shortURLToID(shortURL, chars)
-	// fmt.Printf("Url given: [%d]\n", idGiven)
 
 	fqdn, err := fqdn.FqdnHostname()
 	if err != nil {
@@ -60,17 +58,20 @@ func shorturl(c *gin.Context) {
 	)
 }
 
+func changeLink(c *gin.Context) {
+	var url URLChange
+	_ = c.ShouldBind(&url)
+	fmt.Println(url)
+	fmt.Println(url.ShortURL)
+	fmt.Println(url.NewURL)
+	fmt.Println(shortURLToID(url.NewURL, chars))
+	fmt.Println((*dao).findAll())
+}
+
 func redirectShortURL(c *gin.Context) {
 	shortURLParam := c.Param("url")
-	if shortURLParam == "" {
-		fmt.Println("valiendo verga")
-	}
-
-	// fmt.Println("Holis ... ")
-	fmt.Printf("This -> [%s]\n", shortURLParam)
 	id := shortURLToID(shortURLParam, chars)
 
-	// fmt.Println(id)
 	urlFromDB, err := (*dao).findByID(id)
 	if err != nil {
 
@@ -79,31 +80,11 @@ func redirectShortURL(c *gin.Context) {
 	}
 }
 
-func getArticle(c *gin.Context) {
-	// Check if the article ID is valid
-	if articleID, err := strconv.Atoi(c.Param("article_id")); err == nil {
-		// Check if the article exists
-		if article, err := getArticleByID(articleID); err == nil {
-			// Call the HTML method of the Context to render a template
-			c.HTML(
-				// Set the HTTP status to 200 (OK)
-				http.StatusOK,
-				// Use the index.html template
-				"article.html",
-				// Pass the data that the page uses
-				gin.H{
-					"title":   article.Title,
-					"payload": article,
-				},
-			)
-
-		} else {
-			// If the article is not found, abort with an error
-			c.AbortWithError(http.StatusNotFound, err)
-		}
-
-	} else {
-		// If an invalid article ID is specified in the URL, abort with an error
-		c.AbortWithStatus(http.StatusNotFound)
+func viewUrls(c *gin.Context) {
+	urls, err := (*dao).findAll()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
 	}
+
+	c.JSON(http.StatusOK, urls)
 }

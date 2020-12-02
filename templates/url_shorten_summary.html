@@ -72,8 +72,28 @@
 
         <div class="url_short_summary">
           <h1>littleu link</h1>
-          <span id="url_clipboard"><strong>{{ .littleu_link }}</strong></span>
+          <a href={{ .littleu_link }}><span id="url_clipboard"><strong>{{ .littleu_link }}</strong></span></a>
           <button onclick="copyToClipboard('#url_clipboard')" type="button" class="btn btn-outline-success">COPY</button>
+        </div>
+
+        <hr>
+
+        <!-- // URLChange ...
+        type URLChange struct {
+        ShortURL string `form:"url"`
+        NewURL string `form:"new_url"`
+        } -->
+
+        <div class="custom_littleu_link">
+          <h2>Customize link</h2>
+          <form method="post" action="/u/changelink">
+            <div class="form-group form_change_link">
+              <label for="url">Current -> <i><a href={{ .littleu_link }}>{{ .littleu_link }}</a></i></label>
+              <input type="text" class="form-control littleu_link_to_change" id="url" name="url" placeholder={{ .short_url }}>
+              <input type="hidden" value={{ .short_url }} id="new_url" name="new_url" />
+            </div>
+            <button type="submit" class="btn btn-primary">Change</button>
+          </form>
         </div>
 
 

@@ -22,3 +22,11 @@ footer {
 /* .url_short_summary {
   display: flex;
 } */
+
+.form_change_link {
+  width: 50%;
+}
+
+.littleu_link_to_change {
+  width: 40%;
+}
