@@ -58,14 +58,45 @@ func shorturl(c *gin.Context) {
 	)
 }
 
+func debugURLSIDs(urls ...string) {
+	for _, url := range urls {
+		id := shortURLToID(url, chars)
+		fmt.Printf("The id for '%s' is %d\n", url, id)
+	}
+}
+
 func changeLink(c *gin.Context) {
 	var url URLChange
 	_ = c.ShouldBind(&url)
-	fmt.Println(url)
-	fmt.Println(url.ShortURL)
-	fmt.Println(url.NewURL)
-	fmt.Println(shortURLToID(url.NewURL, chars))
-	fmt.Println((*dao).findAll())
+
+	debugURLSIDs(url.NewURL, url.ShortURL)
+
+	URLID := shortURLToID(url.ShortURL, chars)
+
+	oldURL := URL{
+		URL: url.ShortURL,
+	}
+
+	newURL := URL{
+		URL: url.NewURL,
+	}
+
+	_, err := (*dao).update(URLID, oldURL, newURL)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.HTML(
+		http.StatusOK,
+		"littleu_linkchanged.html",
+		// Pass the data that the page uses
+		gin.H{
+			"title":     "littleu - link changed",
+			"from_link": url.ShortURL,
+			"to_link":   url.NewURL,
+		},
+	)
+
 }
 
 func redirectShortURL(c *gin.Context) {

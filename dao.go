@@ -8,8 +8,9 @@ import (
 // DBHandler ...
 type DBHandler interface {
 	save(u URL) (int, error)
+	update(ID int, oldURL, newURL URL) (int, error)
 	findAll() (map[int]string, error)
-	findByID(id int) (URL, error)
+	findByID(ID int) (URL, error)
 }
 
 type memoryDB struct {
@@ -53,14 +54,30 @@ func (im InMemoryImpl) findAll() (map[int]string, error) {
 	return im.DB.db, nil
 }
 
-func (im InMemoryImpl) findByID(id int) (URL, error) {
-	u, found := im.DB.db[id]
+func (im InMemoryImpl) findByID(ID int) (URL, error) {
+	u, found := im.DB.db[ID]
 	if found {
 		url := URL{
 			URL: u,
 		}
 		return url, nil
 	}
-	return URL{}, fmt.Errorf("no url found for: %d", id)
+	return URL{}, fmt.Errorf("no url found for: %d", ID)
+}
 
+func (im InMemoryImpl) update(ID int, oldURL, newURL URL) (int, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if _, ok := im.DB.db[ID]; !ok {
+		return ID, fmt.Errorf("%d key not found in DB", ID)
+	}
+
+	newID := shortURLToID(newURL.URL, chars)
+	url := im.DB.db[ID]
+
+	im.DB.db[newID] = url
+	delete(im.DB.db, ID)
+
+	return newID, nil
 }
