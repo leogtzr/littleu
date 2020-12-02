@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -41,7 +42,8 @@ func shorturl(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
-	domain := fmt.Sprintf("%s%s", fqdn, serverPort)
+	domain := net.JoinHostPort(fqdn, serverPort)
+
 	littleuLink := fmt.Sprintf("%s/u/%s", domain, shortURL)
 
 	c.HTML(

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 
@@ -41,7 +42,7 @@ func init() {
 	var err error
 	envConfig, err = readConfig("config.env", ".", map[string]interface{}{
 		"dbengine": "memory",
-		"port":     ":8080",
+		"port":     "8080",
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -72,5 +73,5 @@ func main() {
 	initializeRoutes()
 
 	// Start serving the applications
-	router.Run(serverPort)
+	router.Run(net.JoinHostPort("", serverPort))
 }
