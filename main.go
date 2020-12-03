@@ -1,3 +1,4 @@
+// TODO: use viper.
 package main
 
 import (
@@ -6,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +16,7 @@ import (
 // Render one of HTML, JSON or CSV based on the 'Accept' header of the request
 // If the header doesn't specify this, HTML is rendered, provided that
 // the template name is present
-func render(c *gin.Context, data gin.H, templateName string) {
+func render2(c *gin.Context, data gin.H, templateName string) {
 	loggedInInterface, _ := c.Get("is_logged_in")
 	data["is_logged_in"] = loggedInInterface.(bool)
 
@@ -53,6 +55,21 @@ func init() {
 
 	// Initialize DB:
 	dao = factory(envConfig.GetString("dbengine"))
+
+	// Initialize Redis:
+	//Initializing redis
+	dsn := envConfig.GetString("REDIS_DSN")
+	if len(dsn) == 0 {
+		dsn = "localhost:6379"
+	}
+	redisClient = redis.NewClient(&redis.Options{
+		Addr: dsn, //redis port
+	})
+	_, err = redisClient.Ping().Result()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }
 
 func main() {

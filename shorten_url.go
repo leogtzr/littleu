@@ -12,7 +12,6 @@ import (
 )
 
 func showIndexPage(c *gin.Context) {
-	articles := getAllArticles()
 
 	// Call the HTML method of the Context to render a template
 	c.HTML(
@@ -21,8 +20,7 @@ func showIndexPage(c *gin.Context) {
 		"index.html",
 		// Pass the data that the page uses
 		gin.H{
-			"title":   "Home",
-			"payload": articles,
+			"title": "Home",
 		},
 	)
 }
@@ -118,4 +116,31 @@ func viewUrls(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, urls)
+}
+
+func login(c *gin.Context) {
+	var u User
+	if err := c.ShouldBindJSON(&u); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
+		return
+	}
+	//compare the user from the request, with the one we defined:
+	if user.Username != u.Username || user.Password != u.Password {
+		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
+		return
+	}
+	ts, err := CreateToken(user.ID, envConfig)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	saveErr := CreateAuth(user.ID, ts)
+	if saveErr != nil {
+		c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
+	}
+	tokens := map[string]string{
+		"access_token":  ts.AccessToken,
+		"refresh_token": ts.RefreshToken,
+	}
+	c.JSON(http.StatusOK, tokens)
 }
