@@ -121,12 +121,12 @@ func viewUrls(c *gin.Context) {
 func login(c *gin.Context) {
 	var u User
 	if err := c.ShouldBindJSON(&u); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
+		c.JSON(http.StatusUnprocessableEntity, "invalid json provided")
 		return
 	}
 	//compare the user from the request, with the one we defined:
 	if user.Username != u.Username || user.Password != u.Password {
-		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
+		c.JSON(http.StatusUnauthorized, "please provide valid login details")
 		return
 	}
 	ts, err := CreateToken(user.ID, envConfig)
@@ -143,4 +143,36 @@ func login(c *gin.Context) {
 		"refresh_token": ts.RefreshToken,
 	}
 	c.JSON(http.StatusOK, tokens)
+}
+
+// TODO: to be removed...
+// Todo ...
+type Todo struct {
+	UserID uint64 `json:"user_id"`
+	Title  string `json:"title"`
+}
+
+// CreateSomething ...
+func CreateSomething(c *gin.Context) {
+	var td *Todo
+	if err := c.ShouldBindJSON(&td); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, "invalid json")
+		return
+	}
+	tokenAuth, err := ExtractTokenMetadata(c.Request)
+	if err != nil {
+		fmt.Println("Here ... ")
+		c.JSON(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userID, err := FetchAuth(tokenAuth)
+	if err != nil {
+		fmt.Println("Here ... 2")
+		c.JSON(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	td.UserID = userID
+	//you can proceed to save the Todo to a database
+	//but we will just return it to the caller here:
+	c.JSON(http.StatusCreated, td)
 }

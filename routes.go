@@ -7,4 +7,5 @@ func initializeRoutes() {
 	router.POST("/u/shorturl", shorturl)
 	router.POST("/u/changelink", changeLink)
 	router.POST("/login", login)
+	router.POST("/something", CreateSomething)
 }

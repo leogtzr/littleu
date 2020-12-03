@@ -3,7 +3,9 @@ package main
 import (
 	"sync"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -18,4 +20,11 @@ var (
 	}
 
 	redisClient *redis.Client
+)
+
+var (
+	router     *gin.Engine
+	envConfig  *viper.Viper
+	dao        *DBHandler
+	serverPort string
 )

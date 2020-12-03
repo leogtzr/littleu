@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/go-redis/redis"
-	"github.com/spf13/viper"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,13 +31,6 @@ func render2(c *gin.Context, data gin.H, templateName string) {
 		c.HTML(http.StatusOK, templateName, data)
 	}
 }
-
-var (
-	router     *gin.Engine
-	envConfig  *viper.Viper
-	dao        *DBHandler
-	serverPort string
-)
 
 func init() {
 	var err error
