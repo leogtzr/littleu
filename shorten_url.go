@@ -145,7 +145,6 @@ func login(c *gin.Context) {
 	c.JSON(http.StatusOK, tokens)
 }
 
-// TODO: to be removed...
 // Todo ...
 type Todo struct {
 	UserID uint64 `json:"user_id"`
@@ -175,4 +174,54 @@ func CreateSomething(c *gin.Context) {
 	//you can proceed to save the Todo to a database
 	//but we will just return it to the caller here:
 	c.JSON(http.StatusCreated, td)
+}
+
+func logout(c *gin.Context) {
+	au, err := ExtractTokenMetadata(c.Request)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	deleted, delErr := DeleteAuth(au.AccessUUID)
+	if delErr != nil || deleted == 0 { //if any goes wrong
+		c.JSON(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	c.JSON(http.StatusOK, "Successfully logged out")
+}
+
+// Render one of HTML, JSON or CSV based on the 'Accept' header of the request
+// If the header doesn't specify this, HTML is rendered, provided that
+// the template name is present
+func render(c *gin.Context, data gin.H, templateName string) {
+	loggedInInterface, _ := c.Get("is_logged_in")
+	data["is_logged_in"] = loggedInInterface.(bool)
+
+	switch c.Request.Header.Get("Accept") {
+	case "application/json":
+		// Respond with JSON
+		c.JSON(http.StatusOK, data["payload"])
+	case "application/xml":
+		// Respond with XML
+		c.XML(http.StatusOK, data["payload"])
+	default:
+		// Respond with HTML
+		c.HTML(http.StatusOK, templateName, data)
+	}
+}
+
+func showLoginPage(c *gin.Context) {
+	// Call the render function with the name of the template to render
+	render(c, gin.H{
+		"title": "Login",
+	}, "login.html")
+}
+
+func showRegistrationPage(c *gin.Context) {
+	// Call the render function with the name of the template to render
+	render(c,
+		gin.H{
+			"title": "Register",
+		}, "register.html",
+	)
 }

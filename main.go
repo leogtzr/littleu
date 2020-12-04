@@ -3,11 +3,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
 
 	"github.com/go-redis/redis"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/gin-gonic/gin"
 )
@@ -62,6 +65,19 @@ func init() {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
+
+	mongoClientOptions := options.Client().ApplyURI(envConfig.GetString("MONGO_URI"))
+	client, err := mongo.Connect(ctx, mongoClientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	collection = client.Database("littleu").Collection("user")
 }
 
 func main() {

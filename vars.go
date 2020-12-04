@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
+	collection *mongo.Collection
+	ctx        = context.TODO()
+
 	mu sync.RWMutex
 
 	// TODO: remove the following:

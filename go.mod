@@ -10,4 +10,5 @@ require (
 	github.com/go-redis/redis/v7 v7.4.0 // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/spf13/viper v1.7.1
+	go.mongodb.org/mongo-driver v1.4.4
 )

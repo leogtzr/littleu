@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"github.com/spf13/viper"
 )
@@ -154,4 +155,26 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 	}
 	userID, _ := strconv.ParseUint(userid, 10, 64)
 	return userID, nil
+}
+
+// DeleteAuth ...
+func DeleteAuth(UUID string) (int64, error) {
+	deleted, err := redisClient.Del(UUID).Result()
+	if err != nil {
+		return 0, err
+	}
+	return deleted, nil
+}
+
+// TokenAuthMiddleware ...
+func TokenAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err := TokenValid(c.Request)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, err.Error())
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
 }
