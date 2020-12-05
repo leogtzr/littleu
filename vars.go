@@ -18,7 +18,7 @@ var (
 
 	// TODO: remove the following:
 	// dummy auth user:
-	user = User{
+	dummyUser = User{
 		ID:       1,
 		Username: "username",
 		Password: "password",

@@ -4,11 +4,16 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/Showmax/go-fqdn"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func showIndexPage(c *gin.Context) {
@@ -16,9 +21,7 @@ func showIndexPage(c *gin.Context) {
 	// Call the HTML method of the Context to render a template
 	c.HTML(
 		http.StatusOK,
-		// Use the index.html template
 		"index.html",
-		// Pass the data that the page uses
 		gin.H{
 			"title": "Home",
 		},
@@ -45,7 +48,6 @@ func shorturl(c *gin.Context) {
 	c.HTML(
 		http.StatusOK,
 		"url_shorten_summary.html",
-		// Pass the data that the page uses
 		gin.H{
 			"title":        "Home",
 			"url":          url.URL,
@@ -87,7 +89,6 @@ func changeLink(c *gin.Context) {
 	c.HTML(
 		http.StatusOK,
 		"littleu_linkchanged.html",
-		// Pass the data that the page uses
 		gin.H{
 			"title":     "littleu - link changed",
 			"from_link": url.ShortURL,
@@ -119,22 +120,82 @@ func viewUrls(c *gin.Context) {
 }
 
 func login(c *gin.Context) {
+
+	type formUser struct {
+		Username string `form:"username"`
+		Password string `form:"password"`
+	}
+
+	var ux formUser
+	if err := c.ShouldBind(&ux); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, "invalid data provided")
+		return
+	}
+
+	if err := validateNewUserFields(ux.Username, ux.Password); err != nil {
+		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+			"ErrorTitle":   "Login Failed",
+			"ErrorMessage": err.Error()})
+		return
+	}
+
+	exist, err := userExists(ux.Username)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+			"ErrorTitle":   "Login Failed",
+			"ErrorMessage": err.Error()})
+		return
+	}
+	if !exist {
+		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+			"ErrorTitle":   "Login Failed",
+			"ErrorMessage": "User does not exist"})
+		return
+	}
+
+	match, _ := validateUserAndPassword(ux.Username, ux.Password)
+
+	if !match {
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+			"ErrorTitle":   "Login Failed",
+			"ErrorMessage": "Bad credentials"})
+		return
+	}
+
+	// If the user is created, set the token in a cookie and log the user in
+	token := generateSessionToken()
+	c.SetCookie("token", token, 3600, "", "", false, true)
+	c.Set("is_logged_in", true)
+
+	c.HTML(
+		http.StatusOK,
+		"index.html",
+		gin.H{
+			"title": "Home",
+		},
+	)
+
+}
+
+// Previously named "login"
+func generateToken(c *gin.Context) {
 	var u User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "invalid json provided")
 		return
 	}
 	//compare the user from the request, with the one we defined:
-	if user.Username != u.Username || user.Password != u.Password {
+	if dummyUser.Username != u.Username || dummyUser.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "please provide valid login details")
 		return
 	}
-	ts, err := CreateToken(user.ID, envConfig)
+	ts, err := CreateToken(dummyUser.ID, envConfig)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
-	saveErr := CreateAuth(user.ID, ts)
+
+	saveErr := CreateAuth(dummyUser.ID, ts)
 	if saveErr != nil {
 		c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
 	}
@@ -151,6 +212,7 @@ type Todo struct {
 	Title  string `json:"title"`
 }
 
+// TODO: remove the following function and the test route.
 // CreateSomething ...
 func CreateSomething(c *gin.Context) {
 	var td *Todo
@@ -224,4 +286,95 @@ func showRegistrationPage(c *gin.Context) {
 			"title": "Register",
 		}, "register.html",
 	)
+}
+
+/*
+func hashAndSalt(pwd []byte) string {
+
+	// Use GenerateFromPassword to hash & salt pwd.
+	// MinCost is just an integer constant provided by the bcrypt
+	// package along with DefaultCost & MaxCost.
+	// The cost can be any value you want provided it isn't lower
+	// than the MinCost (4)
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+	} // GenerateFromPassword returns a byte slice so we need to
+	// convert the bytes to a string and return it
+	return string(hash)
+}
+
+*/
+
+func register(c *gin.Context) {
+	// Obtain the POSTed username and password values
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	if err := validateNewUserFields(username, password); err != nil {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"ErrorTitle":   "Registration Failed",
+			"ErrorMessage": err.Error()})
+		return
+	}
+
+	hashPassword := hashAndSalt([]byte(password))
+
+	newUser := NewUser{
+		ID:        primitive.NewObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		User:      username,
+		Password:  hashPassword,
+	}
+
+	exists, err := userExists(username)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"ErrorTitle":   "Registration Failed",
+			"ErrorMessage": err.Error()})
+		return
+	}
+	if exists {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"ErrorTitle":   "Registration Failed",
+			"ErrorMessage": "User already exists"})
+		return
+	}
+
+	err = createUser(&newUser)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v", err)
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"ErrorTitle":   "Registration Failed",
+			"ErrorMessage": "Error creating user, contact the administrator."})
+	}
+
+	// If the user is created, set the token in a cookie and log the user in
+	token := generateSessionToken()
+	c.SetCookie("token", token, 3600, "", "", false, true)
+	c.Set("is_logged_in", true)
+
+	render(c, gin.H{
+		"title": "Successful registration & Login"}, "login-successful.html")
+}
+
+// TODO: move this to another file.
+// TODO: make this secure.
+func generateSessionToken() string {
+	// We're using a random 16 character string as the session token
+	// This is NOT a secure way of generating session tokens
+	// DO NOT USE THIS IN PRODUCTION
+	return strconv.FormatInt(rand.Int63(), 16)
+}
+
+// TODO: move this to another file.
+// Check if the supplied username is available
+func isUsernameAvailable(username string) bool {
+	// for _, u := range userList {
+	// 	if u.Username == username {
+	// 		return false
+	// 	}
+	// }
+	return true
 }

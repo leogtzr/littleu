@@ -1,4 +1,4 @@
-// TODO: use viper.
+// TODO: fix middleware to know if the user is already logged or not.
 package main
 
 import (
@@ -51,7 +51,6 @@ func init() {
 	// Initialize DB:
 	dao = factory(envConfig.GetString("dbengine"))
 
-	// Initialize Redis:
 	//Initializing redis
 	dsn := envConfig.GetString("REDIS_DSN")
 	if len(dsn) == 0 {

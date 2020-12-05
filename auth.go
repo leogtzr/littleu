@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// TODO: fix typos in this struct.
 // TokenDetails ...
 type TokenDetails struct {
 	AccessToken  string

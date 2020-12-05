@@ -12,11 +12,26 @@ func ensureNotLoggedIn() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// If there's no error or if the token is not empty
 		// the user is already logged in
-		loggedInInterface, exists := c.Get("is_logged_in")
+		loggedInInterface, _ := c.Get("is_logged_in")
 		loggedIn := loggedInInterface.(bool)
 		if loggedIn {
 			// if token, err := c.Cookie("token"); err == nil || token != "" {
-			c.AbortWithStatus(http.StatusUnauthorized)
+
+			/*
+				Here we need to decide between two things.
+				If the user is already logged in and tries to hit the /register url,
+					do you show him/her an error StatusUnauthorized(401) or
+					do you send him/her to the index.html page?
+			*/
+
+			// c.AbortWithStatus(http.StatusUnauthorized)
+			c.HTML(
+				http.StatusOK,
+				"index.html",
+				gin.H{
+					"title": "Home",
+				},
+			)
 		}
 	}
 }
