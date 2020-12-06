@@ -1,15 +1,11 @@
-// TODO: fix middleware to know if the user is already logged or not.
 package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 
 	"github.com/go-redis/redis"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +24,8 @@ func init() {
 	serverPort = envConfig.GetString("port")
 
 	// Initialize DB:
-	dao = factory(envConfig.GetString("dbengine"))
+	urlDAO = factoryURLDao(envConfig.GetString("dbengine"))
+	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
 
 	//Initializing redis
 	dsn := envConfig.GetString("REDIS_DSN")
@@ -43,19 +40,6 @@ func init() {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-
-	mongoClientOptions := options.Client().ApplyURI(envConfig.GetString("MONGO_URI"))
-	client, err := mongo.Connect(ctx, mongoClientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	collection = client.Database("littleu").Collection("user")
 }
 
 func main() {

@@ -29,6 +29,18 @@ type AccessDetails struct {
 	UserID     uint64
 }
 
+// CreateTokenString ...
+func CreateTokenString(userid string, config *viper.Viper) (string, error) {
+	atClaims := jwt.MapClaims{}
+	atClaims["user_id"] = userid
+	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
+	token, err := at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
 // CreateToken ...
 func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
 
