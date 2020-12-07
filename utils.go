@@ -69,7 +69,6 @@ func readConfig(filename, configPath string, defaults map[string]interface{}) (*
 // 	id := 12345
 // 	shortURL := idToShortURL(id, chars)
 //  url := shortURLToID(shortURL, chars))
-// collection = client.Database("littleu").Collection("user")
 func hashAndSalt(pwd []byte) string {
 
 	// Use GenerateFromPassword to hash & salt pwd.
@@ -83,17 +82,6 @@ func hashAndSalt(pwd []byte) string {
 	} // GenerateFromPassword returns a byte slice so we need to
 	// convert the bytes to a string and return it
 	return string(hash)
-}
-
-func comparePasswords(hashedPwd string, plainPwd []byte) (bool, error) { // Since we'll be getting the hashed password from the DB it
-	// will be a string so we'll need to convert it to a byte slice
-	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
 }
 
 func validateUserAndPassword(username, password string) (bool, error) {

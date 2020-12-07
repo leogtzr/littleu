@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 
 	"github.com/go-redis/redis"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,10 +27,6 @@ func init() {
 
 	serverPort = envConfig.GetString("port")
 
-	// Initialize DB:
-	urlDAO = factoryURLDao(envConfig.GetString("dbengine"))
-	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
-
 	//Initializing redis
 	dsn := envConfig.GetString("REDIS_DSN")
 	if len(dsn) == 0 {
@@ -40,6 +40,23 @@ func init() {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
+
+	ctx = context.TODO()
+
+	mongoClientOptions = options.Client().ApplyURI(envConfig.GetString("MONGO_URI"))
+	mongoClient, err = mongo.Connect(ctx, mongoClientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = mongoClient.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Initialize DB:
+	urlDAO = factoryURLDao(envConfig.GetString("dbengine"), envConfig)
+	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
 }
 
 func main() {

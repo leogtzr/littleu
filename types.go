@@ -11,6 +11,15 @@ type URL struct {
 	URL string `form:"url"`
 }
 
+// URLDocument ...
+type URLDocument struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	CreatedAt time.Time          `bson:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at"`
+	ShortID   int                `bson:"shortid"`
+	URL       string             `bson:"url"`
+}
+
 // URLChange ...
 type URLChange struct {
 	ShortURL string `form:"url"`
@@ -19,9 +28,9 @@ type URLChange struct {
 
 // User ...
 type User struct {
-	ID        primitive.ObjectID `bson:"_id"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
-	User      string             `bson:"user"`
-	Password  string             `bson:"password"`
+	ID        primitive.ObjectID `json:"_id" bson:"_id"`
+	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	User      string             `json:"user" bson:"user"`
+	Password  string             `json:"password" bson:"password"`
 }

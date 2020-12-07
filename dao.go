@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
+
+	// "github.com/mitchellh/mapstructure"
 
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,13 +44,19 @@ type InMemoryImpl struct {
 	DB *memoryDB
 }
 
+// MongoDBURLDAOImpl ...
+type MongoDBURLDAOImpl struct {
+	collection *mongo.Collection
+	ctx        context.Context
+}
+
 // MongoUserDaoImpl ...
 type MongoUserDaoImpl struct {
 	collection *mongo.Collection
 	ctx        context.Context
 }
 
-func factoryURLDao(engine string) *URLDao {
+func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 	var dao URLDao
 	switch engine {
 	case "memory":
@@ -55,6 +64,13 @@ func factoryURLDao(engine string) *URLDao {
 			DB: &memoryDB{
 				db: map[int]string{},
 			},
+		}
+	case "mongo":
+		var collection *mongo.Collection
+		collection = mongoClient.Database("littleu").Collection("url")
+		dao = MongoDBURLDAOImpl{
+			collection: collection,
+			ctx:        ctx,
 		}
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
@@ -67,26 +83,18 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	var userDAO UserDAO
 	switch engine {
 	case "mongo":
-		mongoClientOptions := options.Client().ApplyURI(config.GetString("MONGO_URI"))
-		ctx := context.TODO()
-		client, err := mongo.Connect(ctx, mongoClientOptions)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = client.Ping(ctx, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
 
 		var collection *mongo.Collection
-
-		collection = client.Database("littleu").Collection("user")
+		collection = mongoClient.Database("littleu").Collection("user")
 
 		userDAO = MongoUserDaoImpl{
-			collection,
-			ctx,
+			collection: collection,
+			ctx:        ctx,
 		}
+
+	default:
+		log.Fatalf("error: wrong engine: %s", engine)
+		return nil
 	}
 
 	return &userDAO
@@ -136,7 +144,6 @@ func (im InMemoryImpl) update(ID int, oldURL, newURL URL) (int, error) {
 }
 
 // save(user User) (primitive.ObjectID, error)
-// findAll() ([]User, error)
 func (mongoDAO MongoUserDaoImpl) save(newUser *User) (primitive.ObjectID, error) {
 	res, err := mongoDAO.collection.InsertOne(mongoDAO.ctx, newUser)
 	if err != nil {
@@ -179,9 +186,14 @@ func (mongoDAO MongoUserDaoImpl) findAll() ([]User, error) {
 	return users, nil
 }
 
-func (mongoDAO MongoUserDaoImpl) filterUsers(filter interface{}) ([]*User, error) {
-	// A slice of tasks for storing the decoded documents
-	var users []*User
+func (mongoDAO MongoUserDaoImpl) filterUser(filter interface{}) (User, error) {
+	var user User
+	err := mongoDAO.collection.FindOne(mongoDAO.ctx, filter).Decode(&user)
+	return user, err
+}
+
+func (mongoDAO MongoUserDaoImpl) filterUsers(filter interface{}) ([]User, error) {
+	var users []User
 
 	cur, err := mongoDAO.collection.Find(mongoDAO.ctx, filter)
 	if err != nil {
@@ -195,7 +207,7 @@ func (mongoDAO MongoUserDaoImpl) filterUsers(filter interface{}) ([]*User, error
 			return users, err
 		}
 
-		users = append(users, &u)
+		users = append(users, u)
 	}
 
 	if err := cur.Err(); err != nil {
@@ -212,12 +224,45 @@ func (mongoDAO MongoUserDaoImpl) filterUsers(filter interface{}) ([]*User, error
 	return users, nil
 }
 
+func (mongoDAO MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]*interface{}, error) {
+	// A slice of tasks for storing the decoded documents
+	var urls []*interface{}
+
+	cur, err := mongoDAO.collection.Find(mongoDAO.ctx, filter)
+	if err != nil {
+		return urls, err
+	}
+
+	for cur.Next(mongoDAO.ctx) {
+		var url interface{}
+		err := cur.Decode(&url)
+		if err != nil {
+			return urls, err
+		}
+
+		urls = append(urls, &url)
+	}
+
+	if err := cur.Err(); err != nil {
+		return urls, err
+	}
+
+	// once exhausted, close the cursor
+	cur.Close(mongoDAO.ctx)
+
+	if len(urls) == 0 {
+		return urls, mongo.ErrNoDocuments
+	}
+
+	return urls, nil
+}
+
 func (mongoDAO MongoUserDaoImpl) userExists(username string) (bool, error) {
 	filter := bson.D{
 		primitive.E{Key: "user", Value: username},
 	}
 
-	users, err := mongoDAO.filterUsers(filter)
+	_, err := mongoDAO.filterUser(filter)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -225,7 +270,24 @@ func (mongoDAO MongoUserDaoImpl) userExists(username string) (bool, error) {
 		return false, err
 	}
 
-	return len(users) > 0, err
+	return true, nil
+}
+
+// URLExists ...
+func (mongoDAO MongoDBURLDAOImpl) URLExists(urlID int) (bool, error) {
+	filter := bson.D{
+		primitive.E{Key: "shortid", Value: urlID},
+	}
+
+	urls, err := mongoDAO.filterURLs(filter)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return len(urls) > 0, err
 }
 
 func (mongoDAO MongoUserDaoImpl) findByUsername(username string) (User, error) {
@@ -233,13 +295,101 @@ func (mongoDAO MongoUserDaoImpl) findByUsername(username string) (User, error) {
 		primitive.E{Key: "user", Value: username},
 	}
 
-	users, err := mongoDAO.filterUsers(filter)
+	user, err := mongoDAO.filterUser(filter)
 	if err != nil {
 		return User{}, fmt.Errorf("user '%s' not found in DB", username)
 	}
+	return user, nil
+}
 
-	if len(users) == 0 {
-		return User{}, fmt.Errorf("user '%s' not found in DB", username)
+func (mongoURLDAO MongoDBURLDAOImpl) save(u URL) (int, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	increment := 0
+
+	maxURLID, err := mongoURLDAO.getMaxShortID()
+	if err != nil {
+		if err != mongo.ErrNoDocuments {
+			return -1, err
+		}
 	}
-	return (*users[0]), nil
+
+	increment = maxURLID.ShortID
+	increment++
+
+	// Convert u(URL) to URLDocument
+	urlDoc := URLDocument{
+		ShortID:   increment,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		ID:        primitive.NewObjectID(),
+		URL:       u.URL,
+	}
+
+	_, err = mongoURLDAO.collection.InsertOne(mongoURLDAO.ctx, urlDoc)
+	if err != nil {
+		return increment, err
+	}
+	return increment, nil
+}
+
+// TODO: finish impl for this.
+func (mongoURLDAO MongoDBURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	exists, err := mongoURLDAO.URLExists(ID)
+	if err != nil {
+		return ID, fmt.Errorf("error updating URL with %d id", ID)
+	}
+	if !exists {
+		return ID, fmt.Errorf("%d key not found in DB", ID)
+	}
+
+	newID := shortURLToID(newURL.URL, chars)
+	exists, err = mongoURLDAO.URLExists(ID)
+	if err != nil {
+		return ID, fmt.Errorf("URL %s already exists, pick a different one", newURL.URL)
+	}
+
+	fmt.Printf("debug - newID is: %d\n", newID)
+
+	_, err = mongoURLDAO.collection.UpdateOne(
+		ctx,
+		bson.M{"shortid": ID},
+		bson.D{
+			{"$set", bson.D{{"shortid", newID}}},
+		},
+	)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return newID, nil
+}
+
+// TODO: finish impl for this:
+func (mongoURLDAO MongoDBURLDAOImpl) findAll() (map[int]string, error) {
+	return map[int]string{}, nil
+}
+
+// TODO: finish impl for this.
+func (mongoURLDAO MongoDBURLDAOImpl) findByID(ID int) (URL, error) {
+	return URL{}, nil
+}
+
+func (mongoURLDAO MongoDBURLDAOImpl) getMaxShortID() (URLDocument, error) {
+	var url URLDocument
+
+	options := options.FindOne()
+	options.SetSort(bson.D{{"shortid", -1}})
+
+	err := mongoURLDAO.collection.FindOne(mongoURLDAO.ctx, bson.D{}, options).Decode(&url)
+	if err != nil {
+		return URLDocument{}, err
+	}
+
+	return url, nil
 }

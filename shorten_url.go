@@ -155,8 +155,7 @@ func login(c *gin.Context) {
 		return
 	}
 
-	match, _ := validateUserAndPassword(ux.Username, ux.Password)
-
+	match, err := validateUserAndPassword(ux.Username, ux.Password)
 	if !match {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
@@ -276,13 +275,11 @@ func CreateSomething(c *gin.Context) {
 	}
 	tokenAuth, err := ExtractTokenMetadata(c.Request)
 	if err != nil {
-		fmt.Println("Here ... ")
 		c.JSON(http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	userID, err := FetchAuth(tokenAuth)
 	if err != nil {
-		fmt.Println("Here ... 2")
 		c.JSON(http.StatusUnauthorized, "unauthorized")
 		return
 	}
