@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
@@ -14,6 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	_ "github.com/lib/pq"
 )
 
 // URLDao ...
@@ -56,6 +59,12 @@ type MongoUserDaoImpl struct {
 
 // PostgresqlUserImpl ...
 type PostgresqlUserImpl struct {
+	db *sql.DB
+}
+
+// PostgresqlURLDAOImpl ...
+type PostgresqlURLDAOImpl struct {
+	db *sql.DB
 }
 
 func factoryURLDao(engine string, config *viper.Viper) *URLDao {
@@ -87,6 +96,21 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 			collection: collection,
 			ctx:        ctx,
 		}
+
+	case "postgresql":
+		dsn := envConfig.GetString("POSTGRES_DSN")
+		if dsn == "" {
+			log.Fatalf("POSTGRES_DSN environtment variable is not set")
+		}
+
+		db, err := sql.Open("postgres", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dao = PostgresqlURLDAOImpl{
+			db,
+		}
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
 		return nil
@@ -96,6 +120,7 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 
 func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	var userDAO UserDAO
+	// TODO: missing "memory" here
 	switch engine {
 	case "mongo":
 
@@ -107,8 +132,21 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 			ctx:        ctx,
 		}
 
-	// case "postgresql":
-	// 	userDAO = PostgresqlUserImpl{}
+	case "postgresql":
+
+		dsn := envConfig.GetString("POSTGRES_DSN")
+		if dsn == "" {
+			log.Fatalf("POSTGRES_DSN environtment variable is not set")
+		}
+
+		db, err := sql.Open("postgres", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		userDAO = PostgresqlUserImpl{
+			db,
+		}
 
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
@@ -439,14 +477,85 @@ func (dao MongoDBURLDAOImpl) getMaxShortID() (URLDocument, error) {
 	return url, nil
 }
 
+func (dao PostgresqlUserImpl) save(user *User) (interface{}, error) {
+	createUserSQL := `
+		INSERT INTO users (created_at, updated_at, username, password) VALUES ($1, $2, $3, $4) RETURNING id
+	`
+
+	lastID, err := dao.db.Exec(createUserSQL, user.CreatedAt, user.UpdatedAt, user.User, user.Password)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return lastID, nil
+}
+
+func (dao PostgresqlUserImpl) findAll() ([]User, error) {
+	return []User{}, nil
+}
+
+func (dao PostgresqlUserImpl) findByUsername(username string) (User, error) {
+
+	var user User
+	query := `select username, password, created_at, updated_at from users where username = $1`
+
+	err := dao.db.QueryRow(query, username).Scan(&user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return User{}, fmt.Errorf("user '%s' not found in DB", username)
+		}
+		return User{}, err
+	}
+
+	if user.User == username {
+		return user, nil
+	}
+
+	return User{}, fmt.Errorf("user '%s' not found in DB", username)
+}
+
+func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
+	var user User
+	query := `select username from users where username = $1`
+
+	err := dao.db.QueryRow(query, username).Scan(&user.User)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if user.User == username {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 /*
-// UserDAO ....
-type UserDAO interface {
-	save(user *User) (primitive.ObjectID, error)
-	userExists(username string) (bool, error)
-	findByUsername(username string) (User, error)
-	findAll() ([]User, error)
+// URLDao ...
+type URLDao interface {
+	save(u URL) (int, error)
+	update(ID int, oldURL, newURL URL) (int, error)
+	findAll() (map[int]string, error)
+	findByID(ID int) (URL, error)
 }
 */
 
-// func (dao PostgresqlUserImpl)
+func (dao PostgresqlURLDAOImpl) save(u URL) (int, error) {
+	return -1, nil
+}
+
+func (dao PostgresqlURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
+	return -1, nil
+}
+
+func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
+	return map[int]string{}, nil
+}
+
+func (dao PostgresqlURLDAOImpl) findByID(ID int) (URL, error) {
+	return URL{}, nil
+}
