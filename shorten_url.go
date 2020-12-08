@@ -106,7 +106,7 @@ func redirectShortURL(c *gin.Context) {
 
 	urlFromDB, err := (*urlDAO).findByID(id)
 	if err != nil {
-
+		// TODO: handle this.
 	} else {
 		c.Redirect(http.StatusMovedPermanently, urlFromDB.URL)
 	}
