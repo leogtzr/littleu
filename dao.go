@@ -24,11 +24,9 @@ type URLDao interface {
 	findByID(ID int) (URL, error)
 }
 
-// TODO: finish this.
-
 // UserDAO ....
 type UserDAO interface {
-	save(user *User) (primitive.ObjectID, error)
+	save(user *User) (interface{}, error)
 	userExists(username string) (bool, error)
 	findByUsername(username string) (User, error)
 	findAll() ([]User, error)
@@ -56,8 +54,8 @@ type MongoUserDaoImpl struct {
 	ctx        context.Context
 }
 
-// PostgresqlImpl ...
-type PostgresqlImpl struct {
+// PostgresqlUserImpl ...
+type PostgresqlUserImpl struct {
 }
 
 func factoryURLDao(engine string, config *viper.Viper) *URLDao {
@@ -108,6 +106,9 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 			collection: collection,
 			ctx:        ctx,
 		}
+
+	// case "postgresql":
+	// 	userDAO = PostgresqlUserImpl{}
 
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
@@ -161,7 +162,7 @@ func (im InMemoryImpl) update(ID int, oldURL, newURL URL) (int, error) {
 }
 
 // save(user User) (primitive.ObjectID, error)
-func (dao MongoUserDaoImpl) save(newUser *User) (primitive.ObjectID, error) {
+func (dao MongoUserDaoImpl) save(newUser *User) (interface{}, error) {
 	res, err := dao.collection.InsertOne(dao.ctx, newUser)
 	if err != nil {
 		return primitive.ObjectID{}, err
@@ -437,3 +438,15 @@ func (dao MongoDBURLDAOImpl) getMaxShortID() (URLDocument, error) {
 
 	return url, nil
 }
+
+/*
+// UserDAO ....
+type UserDAO interface {
+	save(user *User) (primitive.ObjectID, error)
+	userExists(username string) (bool, error)
+	findByUsername(username string) (User, error)
+	findAll() ([]User, error)
+}
+*/
+
+// func (dao PostgresqlUserImpl)
