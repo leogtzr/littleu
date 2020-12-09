@@ -16,6 +16,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/gin-contrib/sessions"
 )
 
 func showIndexPage(c *gin.Context) {
@@ -30,12 +32,45 @@ func showIndexPage(c *gin.Context) {
 	)
 }
 
+func checkUserMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		sessionID := session.Get("user_logged_in")
+		if sessionID == nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "unauthorized"})
+			c.Abort()
+		} else {
+			fmt.Println("we are ok in the session handling side.")
+		}
+	}
+}
+
 func shorturl(c *gin.Context) {
 
 	var url URL
 	_ = c.ShouldBind(&url)
 
-	id, _ := (*urlDAO).save(url)
+	session := sessions.Default(c)
+	userFound := session.Get("user_logged_in")
+
+	if userFound == nil {
+		c.HTML(
+			http.StatusInternalServerError,
+			"error5xx.html",
+			gin.H{
+				"title":             "Error",
+				"error_description": `You have to be logged in.`,
+			},
+		)
+		return
+	}
+	fmt.Printf("We are OK -> %s\n", userFound)
+
+	fmt.Println("debug session ... ")
+	fmt.Println(userFound)
+	fmt.Println("debug session ... end")
+
+	id, _ := (*urlDAO).save(url, &userFound)
 	shortURL := idToShortURL(id, chars)
 
 	fqdn, err := fqdn.FqdnHostname()
@@ -121,6 +156,15 @@ func viewUrls(c *gin.Context) {
 	c.JSON(http.StatusOK, urls)
 }
 
+func viewUsers(c *gin.Context) {
+	users, err := (*userDAO).findAll()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
 func login(c *gin.Context) {
 
 	type formUser struct {
@@ -182,6 +226,10 @@ func login(c *gin.Context) {
 	c.SetCookie("token", token, 3600, "", "", false, true)
 	c.Set("is_logged_in", true)
 
+	session := sessions.Default(c)
+	session.Set("user_logged_in", user)
+	session.Save()
+
 	c.HTML(
 		http.StatusOK,
 		"index.html",
@@ -192,7 +240,6 @@ func login(c *gin.Context) {
 
 }
 
-// TODO: fix this.
 // Previously named "login"
 func generateToken(c *gin.Context) {
 
@@ -395,4 +442,15 @@ func register(c *gin.Context) {
 
 	render(c, gin.H{
 		"title": "Successful registration & Login"}, "login-successful.html")
+}
+
+func checkSession(c *gin.Context) {
+
+	session := sessions.Default(c)
+	userFound := session.Get("user_logged_in")
+	fmt.Println("debug session ... ")
+	fmt.Println(userFound)
+	fmt.Println("debug session ... end")
+
+	c.JSON(http.StatusOK, "OK...")
 }

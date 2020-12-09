@@ -21,7 +21,7 @@ import (
 
 // URLDao ...
 type URLDao interface {
-	save(u URL) (int, error)
+	save(url URL, user *interface{}) (int, error)
 	update(ID int, oldURL, newURL URL) (int, error)
 	findAll() (map[int]string, error)
 	findByID(ID int) (URL, error)
@@ -156,13 +156,13 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	return &userDAO
 }
 
-func (im InMemoryImpl) save(u URL) (int, error) {
+func (im InMemoryImpl) save(url URL, user *interface{}) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	im.DB.autoIncrement++
 	id := im.DB.autoIncrement
-	im.DB.db[id] = u.URL
+	im.DB.db[id] = url.URL
 
 	return id, nil
 }
@@ -358,7 +358,7 @@ func (dao MongoUserDaoImpl) findByUsername(username string) (User, error) {
 	return user, nil
 }
 
-func (dao MongoDBURLDAOImpl) save(u URL) (int, error) {
+func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -380,7 +380,7 @@ func (dao MongoDBURLDAOImpl) save(u URL) (int, error) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		ID:        primitive.NewObjectID(),
-		URL:       u.URL,
+		URL:       url.URL,
 	}
 
 	_, err = dao.collection.InsertOne(dao.ctx, urlDoc)
@@ -492,7 +492,35 @@ func (dao PostgresqlUserImpl) save(user *User) (interface{}, error) {
 }
 
 func (dao PostgresqlUserImpl) findAll() ([]User, error) {
-	return []User{}, nil
+
+	var users []User
+	query := `select username, password, created_at, updated_at from users`
+
+	rows, err := dao.db.Query(query)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Printf("debug 1")
+			return []User{}, nil
+		}
+		fmt.Printf("debug 2")
+		return []User{}, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt); err != nil {
+			fmt.Printf("debug 3")
+			return []User{}, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return []User{}, err
+	}
+
+	return users, nil
+
 }
 
 func (dao PostgresqlUserImpl) findByUsername(username string) (User, error) {
@@ -534,17 +562,7 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 	return false, nil
 }
 
-/*
-// URLDao ...
-type URLDao interface {
-	save(u URL) (int, error)
-	update(ID int, oldURL, newURL URL) (int, error)
-	findAll() (map[int]string, error)
-	findByID(ID int) (URL, error)
-}
-*/
-
-func (dao PostgresqlURLDAOImpl) save(u URL) (int, error) {
+func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	return -1, nil
 }
 

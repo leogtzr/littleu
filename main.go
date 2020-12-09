@@ -9,6 +9,11 @@ import (
 	"github.com/go-redis/redis"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
+
+	"encoding/gob"
 )
 
 func init() {
@@ -43,6 +48,8 @@ func init() {
 	// Initialize DB:
 	urlDAO = factoryURLDao(envConfig.GetString("dbengine"), envConfig)
 	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
+
+	gob.Register(&User{})
 }
 
 func main() {
@@ -52,6 +59,8 @@ func main() {
 
 	// Set the router as the default one provided by Gin
 	router = gin.Default()
+	store := cookie.NewStore([]byte("secret"))
+	router.Use(sessions.Sessions("mysession", store))
 
 	router.Static("/assets", "./assets")
 
