@@ -11,7 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+
+	redisSession "github.com/gin-contrib/sessions/redis"
 
 	"encoding/gob"
 )
@@ -59,8 +60,15 @@ func main() {
 
 	// Set the router as the default one provided by Gin
 	router = gin.Default()
-	store := cookie.NewStore([]byte("secret"))
-	router.Use(sessions.Sessions("mysession", store))
+	// store := cookie.NewStore([]byte(envConfig.GetString("SESSION_SECRET")))
+	//Initializing redis
+	dsn := envConfig.GetString("REDIS_DSN")
+	if len(dsn) == 0 {
+		dsn = "localhost:6379"
+	}
+
+	store, _ := redisSession.NewStore(10, "tcp", dsn, "", []byte(envConfig.GetString("SESSION_SECRET")))
+	router.Use(sessions.Sessions("sid", store))
 
 	router.Static("/assets", "./assets")
 
