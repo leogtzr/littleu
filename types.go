@@ -33,4 +33,14 @@ type User struct {
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
 	User      string             `json:"user" bson:"user"`
 	Password  string             `json:"password" bson:"password"`
+	// IDP       int
+}
+
+// UserPostgresql ...
+type UserPostgresql struct {
+	ID        int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	User      string
+	Password  string
 }

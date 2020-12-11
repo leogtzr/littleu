@@ -36,7 +36,7 @@ func init() {
 		dsn = "localhost:6379"
 	}
 	redisClient = redis.NewClient(&redis.Options{
-		Addr: dsn, //redis port
+		Addr: dsn,
 	})
 	_, err = redisClient.Ping().Result()
 	if err != nil {
@@ -51,6 +51,7 @@ func init() {
 	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
 
 	gob.Register(&User{})
+	gob.Register(&UserPostgresql{})
 }
 
 func main() {

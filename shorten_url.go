@@ -15,7 +15,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gin-contrib/sessions"
 )
@@ -199,7 +198,7 @@ func login(c *gin.Context) {
 		return
 	}
 
-	match, err := validateUserAndPassword(ux.Username, ux.Password)
+	match, err := (*userDAO).validateUserAndPassword(ux.Username, ux.Password)
 	if !match {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
@@ -215,7 +214,7 @@ func login(c *gin.Context) {
 		return
 	}
 
-	token, err := CreateTokenString(user.ID.Hex(), envConfig)
+	token, err := CreateTokenString(&user, envConfig)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
@@ -400,13 +399,13 @@ func register(c *gin.Context) {
 
 	hashPassword := hashAndSalt([]byte(password))
 
-	newUser := User{
-		ID:        primitive.NewObjectID(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		User:      username,
-		Password:  hashPassword,
-	}
+	// newUser := User{
+	// 	ID:        primitive.NewObjectID(),
+	// 	CreatedAt: time.Now(),
+	// 	UpdatedAt: time.Now(),
+	// 	User:      username,
+	// 	Password:  hashPassword,
+	// }
 
 	exists, err := (*userDAO).userExists(username)
 	if err != nil {
@@ -422,7 +421,7 @@ func register(c *gin.Context) {
 		return
 	}
 
-	_, err = (*userDAO).save(&newUser)
+	newUser, err := (*userDAO).addUser(username, hashPassword)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v", err)
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
@@ -430,7 +429,7 @@ func register(c *gin.Context) {
 			"ErrorMessage": "Error creating user, contact the administrator."})
 	}
 
-	token, err := CreateTokenString(newUser.ID.Hex(), envConfig)
+	token, err := CreateTokenString(&newUser, envConfig)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",

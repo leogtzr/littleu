@@ -30,9 +30,15 @@ type AccessDetails struct {
 }
 
 // CreateTokenString ...
-func CreateTokenString(userid string, config *viper.Viper) (string, error) {
+func CreateTokenString(user *interface{}, config *viper.Viper) (string, error) {
 	atClaims := jwt.MapClaims{}
-	atClaims["user_id"] = userid
+
+	if u, ok := (*user).(User); ok {
+		atClaims["user_id"] = u.ID.Hex()
+	} else {
+		atClaims["user_id"] = u.ID
+	}
+
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	token, err := at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {

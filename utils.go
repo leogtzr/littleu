@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/spf13/viper"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -82,23 +81,6 @@ func hashAndSalt(pwd []byte) string {
 	} // GenerateFromPassword returns a byte slice so we need to
 	// convert the bytes to a string and return it
 	return string(hash)
-}
-
-func validateUserAndPassword(username, password string) (bool, error) {
-	user, err := (*userDAO).findByUsername(username)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
-		return false, err
-	}
-
-	hashFromDatabase := []byte(user.Password)
-	if err := bcrypt.CompareHashAndPassword(hashFromDatabase, []byte(password)); err != nil {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func validateNewUserFields(user, password string) error {

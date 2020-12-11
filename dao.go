@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -29,10 +30,11 @@ type URLDao interface {
 
 // UserDAO ....
 type UserDAO interface {
-	save(user *User) (interface{}, error)
+	addUser(username, password string) (interface{}, error)
 	userExists(username string) (bool, error)
-	findByUsername(username string) (User, error)
+	findByUsername(username string) (interface{}, error)
 	findAll() ([]User, error)
+	validateUserAndPassword(username, password string) (bool, error)
 }
 
 type memoryDB struct {
@@ -199,8 +201,18 @@ func (im InMemoryImpl) update(ID int, oldURL, newURL URL) (int, error) {
 	return newID, nil
 }
 
-// save(user User) (primitive.ObjectID, error)
-func (dao MongoUserDaoImpl) save(newUser *User) (interface{}, error) {
+func (dao MongoUserDaoImpl) addUser(username, password string) (interface{}, error) {
+
+	hashPassword := hashAndSalt([]byte(password))
+
+	newUser := User{
+		ID:        primitive.NewObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		User:      username,
+		Password:  hashPassword,
+	}
+
 	res, err := dao.collection.InsertOne(dao.ctx, newUser)
 	if err != nil {
 		return primitive.ObjectID{}, err
@@ -346,7 +358,8 @@ func (dao MongoDBURLDAOImpl) URLExists(urlID int) (bool, error) {
 	return len(urls) > 0, err
 }
 
-func (dao MongoUserDaoImpl) findByUsername(username string) (User, error) {
+// TODO: fix1
+func (dao MongoUserDaoImpl) findByUsername(username string) (interface{}, error) {
 	filter := bson.D{
 		primitive.E{Key: "user", Value: username},
 	}
@@ -381,6 +394,7 @@ func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 		UpdatedAt: time.Now(),
 		ID:        primitive.NewObjectID(),
 		URL:       url.URL,
+		// TODO: should include a field to link it to the user.
 	}
 
 	_, err = dao.collection.InsertOne(dao.ctx, urlDoc)
@@ -408,8 +422,6 @@ func (dao MongoDBURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
 	if err != nil {
 		return ID, fmt.Errorf("URL %s already exists, pick a different one", newURL.URL)
 	}
-
-	fmt.Printf("debug - newID is: %d\n", newID)
 
 	_, err = dao.collection.UpdateOne(
 		ctx,
@@ -477,7 +489,18 @@ func (dao MongoDBURLDAOImpl) getMaxShortID() (URLDocument, error) {
 	return url, nil
 }
 
-func (dao PostgresqlUserImpl) save(user *User) (interface{}, error) {
+func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, error) {
+
+	hashPassword := hashAndSalt([]byte(password))
+
+	user := UserPostgresql{
+		// ID:        primitive.NewObjectID(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		User:      username,
+		Password:  hashPassword,
+	}
+
 	createUserSQL := `
 		INSERT INTO users (created_at, updated_at, username, password) VALUES ($1, $2, $3, $4) RETURNING id
 	`
@@ -499,10 +522,8 @@ func (dao PostgresqlUserImpl) findAll() ([]User, error) {
 	rows, err := dao.db.Query(query)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Printf("debug 1")
 			return []User{}, nil
 		}
-		fmt.Printf("debug 2")
 		return []User{}, err
 	}
 	defer rows.Close()
@@ -510,7 +531,6 @@ func (dao PostgresqlUserImpl) findAll() ([]User, error) {
 	for rows.Next() {
 		var user User
 		if err := rows.Scan(&user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt); err != nil {
-			fmt.Printf("debug 3")
 			return []User{}, err
 		}
 		users = append(users, user)
@@ -523,12 +543,14 @@ func (dao PostgresqlUserImpl) findAll() ([]User, error) {
 
 }
 
-func (dao PostgresqlUserImpl) findByUsername(username string) (User, error) {
+// TODO: fix1
+func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, error) {
 
-	var user User
-	query := `select username, password, created_at, updated_at from users where username = $1`
+	var user UserPostgresql
+	query := `select id, username, password, created_at, updated_at from users where username = $1`
 
-	err := dao.db.QueryRow(query, username).Scan(&user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	err :=
+		dao.db.QueryRow(query, username).Scan(&user.ID, &user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return User{}, fmt.Errorf("user '%s' not found in DB", username)
@@ -537,6 +559,7 @@ func (dao PostgresqlUserImpl) findByUsername(username string) (User, error) {
 	}
 
 	if user.User == username {
+		fmt.Printf("A ver ... [%d]\n", user.ID)
 		return user, nil
 	}
 
@@ -562,7 +585,49 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 	return false, nil
 }
 
+func (dao PostgresqlURLDAOImpl) getMaxShortID() (int, error) {
+	var id int
+	query := `select id from urls order by id desc limit 1`
+
+	err := dao.db.QueryRow(query).Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 1, nil
+		}
+		return -1, err
+	}
+
+	return id, nil
+}
+
 func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	maxID, err := dao.getMaxShortID()
+	if err != nil {
+		// TODO: remove this:
+		panic(err)
+	}
+
+	maxID++
+
+	u, ok := (*user).(*UserPostgresql)
+	if !ok {
+		return -1, fmt.Errorf("error: incompatible types")
+	}
+
+	// TODO: build up URL insert query.
+	createURLSQL := `
+		INSERT INTO urls (created_at, updated_at, url, user_id) values($1, $2, $3, $4) RETURNING id
+	`
+
+	lastID, err := dao.db.Exec(createURLSQL, time.Now(), time.Now(), url.URL, u.ID)
+
+	if err != nil {
+		return -1, err
+	}
+
 	return -1, nil
 }
 
@@ -576,4 +641,50 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 
 func (dao PostgresqlURLDAOImpl) findByID(ID int) (URL, error) {
 	return URL{}, nil
+}
+
+// TODO: move to the dao
+func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (bool, error) {
+	user, err := dao.findByUsername(username)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+
+	u, ok := user.(User)
+	if !ok {
+		return false, fmt.Errorf("error: incompatible types")
+	}
+
+	hashFromDatabase := []byte(u.Password)
+	if err := bcrypt.CompareHashAndPassword(hashFromDatabase, []byte(password)); err != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (dao PostgresqlUserImpl) validateUserAndPassword(username, password string) (bool, error) {
+
+	user, err := dao.findByUsername(username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	u, ok := user.(UserPostgresql)
+	if !ok {
+		return false, fmt.Errorf("error: incompatible types")
+	}
+
+	hashFromDatabase := []byte(u.Password)
+	if err := bcrypt.CompareHashAndPassword(hashFromDatabase, []byte(password)); err != nil {
+		return false, nil
+	}
+
+	return true, nil
 }
