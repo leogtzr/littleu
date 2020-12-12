@@ -153,15 +153,6 @@ func viewUrls(c *gin.Context) {
 	c.JSON(http.StatusOK, urls)
 }
 
-func viewUsers(c *gin.Context) {
-	users, err := (*userDAO).findAll()
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-
-	c.JSON(http.StatusOK, users)
-}
-
 func login(c *gin.Context) {
 
 	type formUser struct {

@@ -33,7 +33,7 @@ type AccessDetails struct {
 func CreateTokenString(user *interface{}, config *viper.Viper) (string, error) {
 	atClaims := jwt.MapClaims{}
 
-	if u, ok := (*user).(User); ok {
+	if u, ok := (*user).(UserMongo); ok {
 		atClaims["user_id"] = u.ID.Hex()
 	} else {
 		atClaims["user_id"] = u.ID

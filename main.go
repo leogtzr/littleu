@@ -50,7 +50,7 @@ func init() {
 	urlDAO = factoryURLDao(envConfig.GetString("dbengine"), envConfig)
 	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
 
-	gob.Register(&User{})
+	gob.Register(&UserMongo{})
 	gob.Register(&UserPostgresql{})
 }
 
@@ -61,7 +61,6 @@ func main() {
 
 	// Set the router as the default one provided by Gin
 	router = gin.Default()
-	// store := cookie.NewStore([]byte(envConfig.GetString("SESSION_SECRET")))
 	//Initializing redis
 	dsn := envConfig.GetString("REDIS_DSN")
 	if len(dsn) == 0 {

@@ -18,6 +18,7 @@ type URLDocument struct {
 	UpdatedAt time.Time          `bson:"updated_at"`
 	ShortID   int                `bson:"shortid"`
 	URL       string             `bson:"url"`
+	UserID    primitive.ObjectID `bson:"user_id"`
 }
 
 // URLChange ...
@@ -26,14 +27,13 @@ type URLChange struct {
 	NewURL   string `form:"new_url"`
 }
 
-// User ...
-type User struct {
+// UserMongo ...
+type UserMongo struct {
 	ID        primitive.ObjectID `json:"_id" bson:"_id"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
 	User      string             `json:"user" bson:"user"`
 	Password  string             `json:"password" bson:"password"`
-	// IDP       int
 }
 
 // UserPostgresql ...

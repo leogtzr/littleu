@@ -5,7 +5,6 @@ func initializeRoutes() {
 
 	// TODO: need to separate API vs regular links.
 	router.GET("/v", viewUrls)
-	router.GET("/us", viewUsers)
 	router.POST("/api/login", generateToken)
 
 	router.GET("/u/:url", redirectShortURL)
