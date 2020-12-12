@@ -309,30 +309,6 @@ type Todo struct {
 	Title  string `json:"title"`
 }
 
-// TODO: remove the following function and the test route.
-// CreateSomething ...
-func CreateSomething(c *gin.Context) {
-	var td *Todo
-	if err := c.ShouldBindJSON(&td); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, "invalid json")
-		return
-	}
-	tokenAuth, err := ExtractTokenMetadata(c.Request)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	userID, err := FetchAuth(tokenAuth)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	td.UserID = userID
-	//you can proceed to save the Todo to a database
-	//but we will just return it to the caller here:
-	c.JSON(http.StatusCreated, td)
-}
-
 func logout(c *gin.Context) {
 	au, err := ExtractTokenMetadata(c.Request)
 	if err != nil {

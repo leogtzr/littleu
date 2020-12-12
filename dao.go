@@ -358,7 +358,6 @@ func (dao MongoDBURLDAOImpl) URLExists(urlID int) (bool, error) {
 	return len(urls) > 0, err
 }
 
-// TODO: fix1
 func (dao MongoUserDaoImpl) findByUsername(username string) (interface{}, error) {
 	filter := bson.D{
 		primitive.E{Key: "user", Value: username},
@@ -543,7 +542,6 @@ func (dao PostgresqlUserImpl) findAll() ([]User, error) {
 
 }
 
-// TODO: fix1
 func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, error) {
 
 	var user UserPostgresql
