@@ -2,28 +2,31 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net"
 	"os"
 
-	"github.com/go-redis/redis"
-
-	"github.com/gin-gonic/gin"
-
 	"github.com/gin-contrib/sessions"
-
 	redisSession "github.com/gin-contrib/sessions/redis"
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
+)
 
-	"encoding/gob"
+const (
+	// MaxIdleConnections ...
+	MaxIdleConnections = 10
 )
 
 func init() {
 	var err error
+
 	envConfig, err = readConfig("config.env", ".", map[string]interface{}{
 		"dbengine": "memory",
 		"port":     "8080",
 	})
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
@@ -31,14 +34,16 @@ func init() {
 
 	serverPort = envConfig.GetString("port")
 
-	//Initializing redis
+	// Initializing redis
 	dsn := envConfig.GetString("REDIS_DSN")
 	if len(dsn) == 0 {
 		dsn = "localhost:6379"
 	}
+
 	redisClient = redis.NewClient(&redis.Options{
 		Addr: dsn,
 	})
+
 	_, err = redisClient.Ping().Result()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -56,19 +61,18 @@ func init() {
 }
 
 func main() {
-
 	// Set Gin to production mode
 	gin.SetMode(gin.ReleaseMode)
 
 	// Set the router as the default one provided by Gin
 	router = gin.Default()
-	//Initializing redis
+	// Initializing redis
 	dsn := envConfig.GetString("REDIS_DSN")
 	if len(dsn) == 0 {
 		dsn = "localhost:6379"
 	}
 
-	store, _ := redisSession.NewStore(10, "tcp", dsn, "", []byte(envConfig.GetString("SESSION_SECRET")))
+	store, _ := redisSession.NewStore(MaxIdleConnections, "tcp", dsn, "", []byte(envConfig.GetString("SESSION_SECRET")))
 	router.Use(sessions.Sessions("sid", store))
 
 	router.Static("/assets", "./assets")

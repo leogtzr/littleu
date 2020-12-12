@@ -3,26 +3,25 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	_ "github.com/lib/pq"
 )
 
 // URLDao ...
 type URLDao interface {
 	save(url URL, user *interface{}) (int, error)
-	update(ID int, oldURL, newURL URL) (int, error)
-	findByID(ID int) (URL, error)
+	update(id int, oldURL, newURL URL) (int, error)
+	findByID(id int) (URL, error)
 	// findAll() (map[int]string, error)
 }
 
@@ -69,6 +68,7 @@ type PostgresqlURLDAOImpl struct {
 
 func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 	var dao URLDao
+
 	switch engine {
 	case "memory":
 		dao = InMemoryImpl{
@@ -79,7 +79,8 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 	case "mongo":
 		var err error
 
-		mongoClientOptions = options.Client().ApplyURI(envConfig.GetString("MONGO_URI"))
+		mongoClientOptions = options.Client().ApplyURI(config.GetString("MONGO_URI"))
+
 		mongoClient, err = mongo.Connect(ctx, mongoClientOptions)
 		if err != nil {
 			log.Fatal(err)
@@ -98,7 +99,7 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 		}
 
 	case "postgresql":
-		dsn := envConfig.GetString("POSTGRES_DSN")
+		dsn := config.GetString("POSTGRES_DSN")
 		if dsn == "" {
 			log.Fatalf("POSTGRES_DSN environtment variable is not set")
 		}
@@ -113,8 +114,10 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 		}
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
+
 		return nil
 	}
+
 	return &dao
 }
 
@@ -123,7 +126,6 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	// TODO: missing "memory" here
 	switch engine {
 	case "mongo":
-
 		var collection *mongo.Collection
 		collection = mongoClient.Database("littleu").Collection("user")
 
@@ -131,10 +133,8 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 			collection: collection,
 			ctx:        ctx,
 		}
-
 	case "postgresql":
-
-		dsn := envConfig.GetString("POSTGRES_DSN")
+		dsn := config.GetString("POSTGRES_DSN")
 		if dsn == "" {
 			log.Fatalf("POSTGRES_DSN environtment variable is not set")
 		}
@@ -150,6 +150,7 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
+
 		return nil
 	}
 
@@ -171,36 +172,37 @@ func (im InMemoryImpl) findAll() (map[int]string, error) {
 	return im.DB.db, nil
 }
 
-func (im InMemoryImpl) findByID(ID int) (URL, error) {
-	u, found := im.DB.db[ID]
+func (im InMemoryImpl) findByID(id int) (URL, error) {
+	u, found := im.DB.db[id]
 	if found {
 		url := URL{
 			URL: u,
 		}
+
 		return url, nil
 	}
-	return URL{}, fmt.Errorf("no url found for: %d", ID)
+
+	return URL{}, fmt.Errorf("no url found for: %d", id)
 }
 
-func (im InMemoryImpl) update(ID int, oldURL, newURL URL) (int, error) {
+func (im InMemoryImpl) update(id int, oldURL, newURL URL) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if _, ok := im.DB.db[ID]; !ok {
-		return ID, fmt.Errorf("%d key not found in DB", ID)
+	if _, ok := im.DB.db[id]; !ok {
+		return id, fmt.Errorf("%d key not found in DB", id)
 	}
 
 	newID := shortURLToID(newURL.URL, chars)
-	url := im.DB.db[ID]
+	url := im.DB.db[id]
 
 	im.DB.db[newID] = url
-	delete(im.DB.db, ID)
+	delete(im.DB.db, id)
 
 	return newID, nil
 }
 
 func (dao MongoUserDaoImpl) addUser(username, password string) (interface{}, error) {
-
 	hashPassword := hashAndSalt([]byte(password))
 
 	newUser := UserMongo{
@@ -215,13 +217,16 @@ func (dao MongoUserDaoImpl) addUser(username, password string) (interface{}, err
 	if err != nil {
 		return primitive.ObjectID{}, err
 	}
+
 	insertedID, _ := res.InsertedID.(primitive.ObjectID)
+
 	return insertedID, nil
 }
 
 func (dao MongoUserDaoImpl) filterUser(filter interface{}) (UserMongo, error) {
 	var user UserMongo
 	err := dao.collection.FindOne(dao.ctx, filter).Decode(&user)
+
 	return user, err
 }
 
@@ -235,6 +240,7 @@ func (dao MongoUserDaoImpl) filterUsers(filter interface{}) ([]UserMongo, error)
 
 	for cur.Next(dao.ctx) {
 		var u UserMongo
+
 		err := cur.Decode(&u)
 		if err != nil {
 			return users, err
@@ -268,6 +274,7 @@ func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, erro
 
 	for cur.Next(dao.ctx) {
 		var url URLDocument
+
 		err := cur.Decode(&url)
 		if err != nil {
 			return urls, err
@@ -297,9 +304,10 @@ func (dao MongoUserDaoImpl) userExists(username string) (bool, error) {
 
 	_, err := dao.filterUser(filter)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
+
 		return false, err
 	}
 
@@ -314,9 +322,10 @@ func (dao MongoDBURLDAOImpl) URLExists(urlID int) (bool, error) {
 
 	urls, err := dao.filterURLs(filter)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
+
 		return false, err
 	}
 
@@ -332,6 +341,7 @@ func (dao MongoUserDaoImpl) findByUsername(username string) (interface{}, error)
 	if err != nil {
 		return UserMongo{}, fmt.Errorf("user '%s' not found in DB", username)
 	}
+
 	return user, nil
 }
 
@@ -367,33 +377,37 @@ func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	if err != nil {
 		return increment, err
 	}
+
 	return increment, nil
 }
 
-func (dao MongoDBURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
+func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	exists, err := dao.URLExists(ID)
+	exists, err := dao.URLExists(id)
 	if err != nil {
-		return ID, fmt.Errorf("error updating URL with %d id", ID)
+		return id, fmt.Errorf("error updating URL with %d id", id)
 	}
+
 	if !exists {
-		return ID, fmt.Errorf("%d key not found in DB", ID)
+		return id, fmt.Errorf("%d key not found in DB", id)
 	}
 
 	newID := shortURLToID(newURL.URL, chars)
-	exists, err = dao.URLExists(ID)
+
+	exists, err = dao.URLExists(id)
 	if err != nil {
-		return ID, fmt.Errorf("error updating URL with %d id", ID)
+		return id, fmt.Errorf("error updating URL with %d id", id)
 	}
+
 	if !exists {
-		return ID, fmt.Errorf("URL %s already exists, pick a different one", newURL.URL)
+		return id, fmt.Errorf("URL %s already exists, pick a different one", newURL.URL)
 	}
 
 	_, err = dao.collection.UpdateOne(
 		ctx,
-		primitive.E{Key: "shortid", Value: ID},
+		primitive.E{Key: "shortid", Value: id},
 		bson.D{
 			{"$set", bson.D{{"shortid", newID}}},
 		},
@@ -423,16 +437,16 @@ func (dao MongoDBURLDAOImpl) findAll() (map[int]string, error) {
 	return urlMap, nil
 }
 
-func (dao MongoDBURLDAOImpl) findByID(ID int) (URL, error) {
-
+func (dao MongoDBURLDAOImpl) findByID(id int) (URL, error) {
 	filter := bson.D{
-		primitive.E{Key: "shortid", Value: ID},
+		primitive.E{Key: "shortid", Value: id},
 	}
 
 	var urlDoc URLDocument
+
 	err := dao.collection.FindOne(dao.ctx, filter).Decode(&urlDoc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return URL{}, err
 		}
 	}
@@ -451,9 +465,10 @@ func (dao MongoDBURLDAOImpl) getMaxShortID() (int, error) {
 
 	err := dao.collection.FindOne(dao.ctx, bson.D{}, options).Decode(&url)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return 0, nil
 		}
+
 		return -1, err
 	}
 
@@ -461,10 +476,10 @@ func (dao MongoDBURLDAOImpl) getMaxShortID() (int, error) {
 }
 
 func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, error) {
-
 	hashPassword := hashAndSalt([]byte(password))
 
 	user := UserPostgresql{
+		ID:        -1,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		User:      username,
@@ -476,7 +491,6 @@ func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, e
 	`
 
 	lastID, err := dao.db.Exec(createUserSQL, user.CreatedAt, user.UpdatedAt, user.User, user.Password)
-
 	if err != nil {
 		return -1, err
 	}
@@ -485,21 +499,21 @@ func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, e
 }
 
 func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, error) {
-
 	var user UserPostgresql
+
 	query := `select id, username, password, created_at, updated_at from users where username = $1`
 
 	err :=
 		dao.db.QueryRow(query, username).Scan(&user.ID, &user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return UserPostgresql{}, fmt.Errorf("user '%s' not found in DB", username)
 		}
+
 		return UserPostgresql{}, err
 	}
 
 	if user.User == username {
-		fmt.Printf("A ver ... [%d]\n", user.ID)
 		return user, nil
 	}
 
@@ -508,13 +522,15 @@ func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, erro
 
 func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 	var user UserPostgresql
+
 	query := `select username from users where username = $1`
 
 	err := dao.db.QueryRow(query, username).Scan(&user.User)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
+
 		return false, err
 	}
 
@@ -527,13 +543,15 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 
 func (dao PostgresqlURLDAOImpl) getMaxShortID() (int, error) {
 	var id int
+
 	query := `SELECT coalesce(max(short_id), 0) FROM urls`
 
 	err := dao.db.QueryRow(query).Scan(&id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return 1, nil
 		}
+
 		return -1, err
 	}
 
@@ -568,7 +586,7 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	return maxID, nil
 }
 
-func (dao PostgresqlURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
+func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	return -1, nil
 }
 
@@ -576,16 +594,17 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 	return map[int]string{}, nil
 }
 
-func (dao PostgresqlURLDAOImpl) findByID(ID int) (URL, error) {
+func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
 	return URL{}, nil
 }
 
 func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (bool, error) {
 	user, err := dao.findByUsername(username)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
+
 		return false, err
 	}
 
@@ -605,9 +624,10 @@ func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (
 func (dao PostgresqlUserImpl) validateUserAndPassword(username, password string) (bool, error) {
 	user, err := dao.findByUsername(username)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
+
 		return false, err
 	}
 

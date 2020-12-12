@@ -10,18 +10,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-)
+var chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 func reverse(s string) string {
 	size := len(s)
 	buf := make([]byte, size)
+
 	for start := 0; start < size; {
 		r, n := utf8.DecodeRuneInString(s[start:])
 		start += n
 		utf8.EncodeRune(buf[size-start:], r)
 	}
+
 	return string(buf)
 }
 
@@ -40,6 +40,7 @@ func idToShortURL(id int, mChars []rune) string {
 func shortURLToID(shortURL string, mChars []rune) int {
 	mapCharsSize := len(mChars)
 	id := 0
+
 	for _, i := range shortURL {
 		c := int(i)
 		if c >= int('a') && c <= int('z') {
@@ -50,23 +51,27 @@ func shortURLToID(shortURL string, mChars []rune) int {
 			id = id*mapCharsSize + c - int('0') + 52
 		}
 	}
+
 	return id
 }
 
 func readConfig(filename, configPath string, defaults map[string]interface{}) (*viper.Viper, error) {
 	v := viper.New()
+
 	for key, value := range defaults {
 		v.SetDefault(key, value)
 	}
+
 	v.SetConfigName(filename)
 	v.AddConfigPath(configPath)
 	v.SetConfigType("env")
+
 	err := v.ReadInConfig()
+
 	return v, err
 }
 
 func hashAndSalt(pwd []byte) string {
-
 	// Use GenerateFromPassword to hash & salt pwd.
 	// MinCost is just an integer constant provided by the bcrypt
 	// package along with DefaultCost & MaxCost.
@@ -84,8 +89,10 @@ func validateNewUserFields(user, password string) error {
 	if strings.TrimSpace(password) == "" {
 		return errors.New("The password can't be empty")
 	}
+
 	if strings.TrimSpace(user) == "" {
 		return errors.New("The username can't be empty")
 	}
+
 	return nil
 }

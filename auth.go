@@ -13,6 +13,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	// RequiredNumberOfFieldsInToken ...
+	RequiredNumberOfFieldsInToken = 2
+	// TokenExpirationMinutes ...
+	TokenExpirationMinutes = time.Minute * 15
+)
+
 // TokenDetails ...
 type TokenDetails struct {
 	AccessToken  string
@@ -40,23 +47,24 @@ func CreateTokenString(user *interface{}, config *viper.Viper) (string, error) {
 	}
 
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
+
 	token, err := at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {
 		return "", err
 	}
+
 	return token, nil
 }
 
 // CreateToken ...
 func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
-
 	td := &TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
+	td.AtExpires = time.Now().Add(TokenExpirationMinutes).Unix()
 
 	u, _ := uuid.NewV4()
 	td.AccessUUID = u.String()
 
-	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+	td.RtExpires = time.Now().Add(Hours24).Unix()
 	u, _ = uuid.NewV4()
 	td.RefreshUUID = u.String()
 
@@ -68,25 +76,29 @@ func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
 	atClaims["user_id"] = userid
 	atClaims["exp"] = td.AtExpires
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
+
 	td.AccessToken, err = at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {
 		return nil, err
 	}
+
 	rtClaims := jwt.MapClaims{}
 	rtClaims["refresh_uuid"] = td.RefreshUUID
 	rtClaims["user_id"] = userid
 	rtClaims["exp"] = td.RtExpires
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
+
 	td.RefreshToken, err = rt.SignedString([]byte(config.GetString("REFRESH_SECRET")))
 	if err != nil {
 		return nil, err
 	}
+
 	return td, nil
 }
 
 // CreateAuth ...
 func CreateAuth(userid uint64, td *TokenDetails) error {
-	at := time.Unix(td.AtExpires, 0) //converting Unix to UTC(to Time object)
+	at := time.Unix(td.AtExpires, 0) // converting Unix to UTC(to Time object)
 	rt := time.Unix(td.RtExpires, 0)
 	now := time.Now()
 
@@ -94,21 +106,19 @@ func CreateAuth(userid uint64, td *TokenDetails) error {
 	if errAccess != nil {
 		return errAccess
 	}
-	errRefresh := redisClient.Set(td.RefreshUUID, strconv.Itoa(int(userid)), rt.Sub(now)).Err()
-	if errRefresh != nil {
-		return errRefresh
-	}
-	return nil
+
+	return redisClient.Set(td.RefreshUUID, strconv.Itoa(int(userid)), rt.Sub(now)).Err()
 }
 
 // ExtractToken ...
 func ExtractToken(r *http.Request) string {
 	bearTokenHeader := r.Header.Get("Authorization")
-	//normally Authorization the_token_xxx
+	// normally Authorization the_token_xxx
 	bearTokenFields := strings.Split(bearTokenHeader, " ")
-	if len(bearTokenFields) == 2 {
+	if len(bearTokenFields) == RequiredNumberOfFieldsInToken {
 		return bearTokenFields[1]
 	}
+
 	return ""
 }
 
@@ -116,15 +126,18 @@ func ExtractToken(r *http.Request) string {
 func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		//Make sure that the token method conform to "SigningMethodHMAC"
+		// Make sure that the token method conform to "SigningMethodHMAC"
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
+
 		return []byte(envConfig.GetString("ACCESS_SECRET")), nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
+
 	return token, nil
 }
 
@@ -134,9 +147,11 @@ func TokenValid(r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
 	if _, ok := token.Claims.(jwt.Claims); !ok && !token.Valid {
 		return err
 	}
+
 	return nil
 }
 
@@ -146,21 +161,25 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
 		accessUUID, ok := claims["access_uuid"].(string)
 		if !ok {
 			return nil, err
 		}
+
 		userID, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
 		if err != nil {
 			return nil, err
 		}
+
 		return &AccessDetails{
 			AccessUUID: accessUUID,
 			UserID:     userID,
 		}, nil
 	}
+
 	return nil, err
 }
 
@@ -170,16 +189,19 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	userID, _ := strconv.ParseUint(userid, 10, 64)
+
 	return userID, nil
 }
 
 // DeleteAuth ...
-func DeleteAuth(UUID string) (int64, error) {
-	deleted, err := redisClient.Del(UUID).Result()
+func DeleteAuth(uuid string) (int64, error) {
+	deleted, err := redisClient.Del(uuid).Result()
 	if err != nil {
 		return 0, err
 	}
+
 	return deleted, nil
 }
 
@@ -190,8 +212,10 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, err.Error())
 			c.Abort()
+
 			return
 		}
+
 		c.Next()
 	}
 }

@@ -9,18 +9,20 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/viper"
-
 	"github.com/Showmax/go-fqdn"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
+	"github.com/spf13/viper"
+)
 
-	"github.com/gin-contrib/sessions"
+const (
+	// Hours24 ...
+	Hours24 = time.Hour * 24 * 7
 )
 
 func showIndexPage(c *gin.Context) {
-
 	// Call the HTML method of the Context to render a template
 	c.HTML(
 		http.StatusOK,
@@ -35,6 +37,7 @@ func checkUserMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		sessionID := session.Get("user_logged_in")
+
 		if sessionID == nil {
 			c.JSON(http.StatusNotFound, gin.H{"message": "unauthorized"})
 			c.Abort()
@@ -43,7 +46,6 @@ func checkUserMiddleware() gin.HandlerFunc {
 }
 
 func shorturl(c *gin.Context) {
-
 	var url URL
 	_ = c.ShouldBind(&url)
 
@@ -59,6 +61,7 @@ func shorturl(c *gin.Context) {
 				"error_description": `You have to be logged in.`,
 			},
 		)
+
 		return
 	}
 
@@ -124,7 +127,6 @@ func changeLink(c *gin.Context) {
 			"to_link":   url.NewURL,
 		},
 	)
-
 }
 
 func redirectShortURL(c *gin.Context) {
@@ -149,7 +151,6 @@ func redirectShortURL(c *gin.Context) {
 // }
 
 func login(c *gin.Context) {
-
 	type formUser struct {
 		Username string `form:"username"`
 		Password string `form:"password"`
@@ -158,13 +159,16 @@ func login(c *gin.Context) {
 	var ux formUser
 	if err := c.ShouldBind(&ux); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "invalid data provided")
+
 		return
 	}
 
 	if err := validateNewUserFields(ux.Username, ux.Password); err != nil {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
 
@@ -172,13 +176,18 @@ func login(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
+
 	if !exist {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": "User does not exist"})
+			"ErrorMessage": "User does not exist",
+		})
+
 		return
 	}
 
@@ -186,13 +195,18 @@ func login(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
+
 	if !match {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": "Bad credentials"})
+			"ErrorMessage": "Bad credentials",
+		})
+
 		return
 	}
 
@@ -200,7 +214,9 @@ func login(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
 
@@ -208,7 +224,9 @@ func login(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
 
@@ -217,10 +235,13 @@ func login(c *gin.Context) {
 
 	session := sessions.Default(c)
 	session.Set("user_logged_in", user)
+
 	if err := session.Save(); err != nil {
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "Error creating user, contact the administrator."})
+			"ErrorMessage": "Error creating user, contact the administrator.",
+		})
+
 		return
 	}
 
@@ -231,11 +252,9 @@ func login(c *gin.Context) {
 			"title": "Home",
 		},
 	)
-
 }
 
 func generateToken(c *gin.Context) {
-
 	type User struct {
 		ID       uint64 `json:"id,omitempty"`
 		Username string `json:"username"`
@@ -251,16 +270,20 @@ func generateToken(c *gin.Context) {
 	var u User
 	if err := c.ShouldBindJSON(&u); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, "invalid json provided")
+
 		return
 	}
-	//compare the user from the request, with the one we defined:
+	// compare the user from the request, with the one we defined:
 	if dummyUser.Username != u.Username || dummyUser.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "please provide valid login details")
+
 		return
 	}
+
 	ts, err := CreateToken(dummyUser.ID, envConfig)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, err.Error())
+
 		return
 	}
 
@@ -268,6 +291,7 @@ func generateToken(c *gin.Context) {
 	if saveErr != nil {
 		c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
 	}
+
 	tokens := map[string]string{
 		"access_token":  ts.AccessToken,
 		"refresh_token": ts.RefreshToken,
@@ -276,14 +300,13 @@ func generateToken(c *gin.Context) {
 }
 
 func createTokenFromUser(userid string, config *viper.Viper) (*TokenDetails, error) {
-
 	td := &TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
+	td.AtExpires = time.Now().Add(TokenExpirationMinutes).Unix()
 
 	u, _ := uuid.NewV4()
 	td.AccessUUID = u.String()
 
-	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+	td.RtExpires = time.Now().Add(Hours24).Unix()
 
 	var err error
 
@@ -292,10 +315,12 @@ func createTokenFromUser(userid string, config *viper.Viper) (*TokenDetails, err
 	atClaims["user_id"] = userid
 	atClaims["exp"] = td.AtExpires
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
+
 	td.AccessToken, err = at.SignedString([]byte(config.GetString("secret")))
 	if err != nil {
 		return nil, err
 	}
+
 	return td, nil
 }
 
@@ -303,19 +328,23 @@ func logout(c *gin.Context) {
 	au, err := ExtractTokenMetadata(c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, "unauthorized")
+
 		return
 	}
+
 	deleted, delErr := DeleteAuth(au.AccessUUID)
-	if delErr != nil || deleted == 0 { //if any goes wrong
+	if delErr != nil || deleted == 0 { // if any goes wrong
 		c.JSON(http.StatusUnauthorized, "unauthorized")
+
 		return
 	}
+
 	c.JSON(http.StatusOK, "Successfully logged out")
 }
 
 // Render one of HTML, JSON or CSV based on the 'Accept' header of the request
 // If the header doesn't specify this, HTML is rendered, provided that
-// the template name is present
+// the template name is present.
 func render(c *gin.Context, data gin.H, templateName string) {
 	loggedInInterface, _ := c.Get("is_logged_in")
 	data["is_logged_in"] = loggedInInterface.(bool)
@@ -355,7 +384,9 @@ func register(c *gin.Context) {
 	if err := validateNewUserFields(username, password); err != nil {
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
 
@@ -365,13 +396,18 @@ func register(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
+
 	if exists {
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "User already exists"})
+			"ErrorMessage": "User already exists",
+		})
+
 		return
 	}
 
@@ -380,27 +416,32 @@ func register(c *gin.Context) {
 		fmt.Fprintf(os.Stderr, "Error: %v", err)
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "Error creating user, contact the administrator."})
+			"ErrorMessage": "Error creating user, contact the administrator.",
+		})
 	}
 
 	token, err := CreateTokenString(&newUser, envConfig)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": err.Error()})
+			"ErrorMessage": err.Error(),
+		})
+
 		return
 	}
+
 	c.SetCookie("token", token, 3600, "", "", false, true)
 	c.Set("is_logged_in", true)
 
 	render(c, gin.H{
-		"title": "Successful registration & Login"}, "login-successful.html")
+		"title": "Successful registration & Login",
+	}, "login-successful.html")
 }
 
 func checkSession(c *gin.Context) {
-
 	session := sessions.Default(c)
 	userFound := session.Get("user_logged_in")
+
 	fmt.Println("debug session ... ")
 	fmt.Println(userFound)
 	fmt.Println("debug session ... end")
