@@ -38,8 +38,6 @@ func checkUserMiddleware() gin.HandlerFunc {
 		if sessionID == nil {
 			c.JSON(http.StatusNotFound, gin.H{"message": "unauthorized"})
 			c.Abort()
-		} else {
-			fmt.Println("we are ok in the session handling side.")
 		}
 	}
 }

@@ -587,7 +587,7 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 
 func (dao PostgresqlURLDAOImpl) getMaxShortID() (int, error) {
 	var id int
-	query := `select id from urls order by id desc limit 1`
+	query := `SELECT max(short_id) FROM urls`
 
 	err := dao.db.QueryRow(query).Scan(&id)
 	if err != nil {
@@ -617,18 +617,16 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 		return -1, fmt.Errorf("error: incompatible types")
 	}
 
-	// TODO: build up URL insert query.
 	createURLSQL := `
-		INSERT INTO urls (created_at, updated_at, url, user_id) values($1, $2, $3, $4) RETURNING id
+		INSERT INTO urls (created_at, updated_at, url, short_id, user_id) values($1, $2, $3, $4, $5) RETURNING id
 	`
 
-	lastID, err := dao.db.Exec(createURLSQL, time.Now(), time.Now(), url.URL, u.ID)
-
+	_, err = dao.db.Exec(createURLSQL, time.Now(), time.Now(), url.URL, maxID, u.ID)
 	if err != nil {
 		return -1, err
 	}
 
-	return -1, nil
+	return maxID, nil
 }
 
 func (dao PostgresqlURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
