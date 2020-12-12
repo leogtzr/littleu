@@ -65,9 +65,6 @@ func readConfig(filename, configPath string, defaults map[string]interface{}) (*
 	return v, err
 }
 
-// 	id := 12345
-// 	shortURL := idToShortURL(id, chars)
-//  url := shortURLToID(shortURL, chars))
 func hashAndSalt(pwd []byte) string {
 
 	// Use GenerateFromPassword to hash & salt pwd.

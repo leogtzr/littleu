@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 
@@ -80,5 +81,7 @@ func main() {
 	initializeRoutes()
 
 	// Start serving the applications
-	router.Run(net.JoinHostPort("", serverPort))
+	if err := router.Run(net.JoinHostPort("", serverPort)); err != nil {
+		log.Fatal(err)
+	}
 }

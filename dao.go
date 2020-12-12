@@ -7,8 +7,6 @@ import (
 	"log"
 	"time"
 
-	// "github.com/mitchellh/mapstructure"
-
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -24,8 +22,8 @@ import (
 type URLDao interface {
 	save(url URL, user *interface{}) (int, error)
 	update(ID int, oldURL, newURL URL) (int, error)
-	findAll() (map[int]string, error)
 	findByID(ID int) (URL, error)
+	// findAll() (map[int]string, error)
 }
 
 // UserDAO ....
@@ -33,8 +31,8 @@ type UserDAO interface {
 	addUser(username, password string) (interface{}, error)
 	userExists(username string) (bool, error)
 	findByUsername(username string) (interface{}, error)
-	// findAll() ([]User, error)
 	validateUserAndPassword(username, password string) (bool, error)
+	// findAll() ([]User, error)
 }
 
 type memoryDB struct {
@@ -387,6 +385,9 @@ func (dao MongoDBURLDAOImpl) update(ID int, oldURL, newURL URL) (int, error) {
 	newID := shortURLToID(newURL.URL, chars)
 	exists, err = dao.URLExists(ID)
 	if err != nil {
+		return ID, fmt.Errorf("error updating URL with %d id", ID)
+	}
+	if !exists {
 		return ID, fmt.Errorf("URL %s already exists, pick a different one", newURL.URL)
 	}
 
@@ -602,7 +603,6 @@ func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (
 }
 
 func (dao PostgresqlUserImpl) validateUserAndPassword(username, password string) (bool, error) {
-
 	user, err := dao.findByUsername(username)
 	if err != nil {
 		if err == sql.ErrNoRows {

@@ -61,11 +61,6 @@ func shorturl(c *gin.Context) {
 		)
 		return
 	}
-	fmt.Printf("We are OK -> %s\n", userFound)
-
-	fmt.Println("debug session ... ")
-	fmt.Println(userFound)
-	fmt.Println("debug session ... end")
 
 	id, _ := (*urlDAO).save(url, &userFound)
 	shortURL := idToShortURL(id, chars)
@@ -144,14 +139,14 @@ func redirectShortURL(c *gin.Context) {
 	}
 }
 
-func viewUrls(c *gin.Context) {
-	urls, err := (*urlDAO).findAll()
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
+// func viewUrls(c *gin.Context) {
+// 	urls, err := (*urlDAO).findAll()
+// 	if err != nil {
+// 		c.AbortWithError(http.StatusInternalServerError, err)
+// 	}
 
-	c.JSON(http.StatusOK, urls)
-}
+// 	c.JSON(http.StatusOK, urls)
+// }
 
 func login(c *gin.Context) {
 
@@ -188,6 +183,12 @@ func login(c *gin.Context) {
 	}
 
 	match, err := (*userDAO).validateUserAndPassword(ux.Username, ux.Password)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+			"ErrorTitle":   "Login Failed",
+			"ErrorMessage": err.Error()})
+		return
+	}
 	if !match {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
@@ -216,7 +217,12 @@ func login(c *gin.Context) {
 
 	session := sessions.Default(c)
 	session.Set("user_logged_in", user)
-	session.Save()
+	if err := session.Save(); err != nil {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"ErrorTitle":   "Registration Failed",
+			"ErrorMessage": "Error creating user, contact the administrator."})
+		return
+	}
 
 	c.HTML(
 		http.StatusOK,
@@ -228,7 +234,6 @@ func login(c *gin.Context) {
 
 }
 
-// Previously named "login"
 func generateToken(c *gin.Context) {
 
 	type User struct {
@@ -294,12 +299,6 @@ func createTokenFromUser(userid string, config *viper.Viper) (*TokenDetails, err
 	return td, nil
 }
 
-// Todo ...
-type Todo struct {
-	UserID uint64 `json:"user_id"`
-	Title  string `json:"title"`
-}
-
 func logout(c *gin.Context) {
 	au, err := ExtractTokenMetadata(c.Request)
 	if err != nil {
@@ -335,14 +334,12 @@ func render(c *gin.Context, data gin.H, templateName string) {
 }
 
 func showLoginPage(c *gin.Context) {
-	// Call the render function with the name of the template to render
 	render(c, gin.H{
 		"title": "Login",
 	}, "login.html")
 }
 
 func showRegistrationPage(c *gin.Context) {
-	// Call the render function with the name of the template to render
 	render(c,
 		gin.H{
 			"title": "Register",
@@ -363,14 +360,6 @@ func register(c *gin.Context) {
 	}
 
 	hashPassword := hashAndSalt([]byte(password))
-
-	// newUser := User{
-	// 	ID:        primitive.NewObjectID(),
-	// 	CreatedAt: time.Now(),
-	// 	UpdatedAt: time.Now(),
-	// 	User:      username,
-	// 	Password:  hashPassword,
-	// }
 
 	exists, err := (*userDAO).userExists(username)
 	if err != nil {
