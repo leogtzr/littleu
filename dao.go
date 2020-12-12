@@ -587,7 +587,7 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 
 func (dao PostgresqlURLDAOImpl) getMaxShortID() (int, error) {
 	var id int
-	query := `SELECT max(short_id) FROM urls`
+	query := `SELECT coalesce(max(short_id), 0) FROM urls`
 
 	err := dao.db.QueryRow(query).Scan(&id)
 	if err != nil {
@@ -606,8 +606,7 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 
 	maxID, err := dao.getMaxShortID()
 	if err != nil {
-		// TODO: remove this:
-		panic(err)
+		return -1, err
 	}
 
 	maxID++
@@ -641,7 +640,6 @@ func (dao PostgresqlURLDAOImpl) findByID(ID int) (URL, error) {
 	return URL{}, nil
 }
 
-// TODO: move to the dao
 func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (bool, error) {
 	user, err := dao.findByUsername(username)
 	if err != nil {
