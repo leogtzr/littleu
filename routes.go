@@ -3,8 +3,8 @@ package main
 func initializeRoutes() {
 	router.Use(setUserStatus())
 
-	// TODO: need to separate API vs regular links.
 	router.POST("/api/login", generateToken)
+	router.GET("/api/users", viewUsers)
 
 	router.GET("/u/:url", redirectShortURL)
 	router.GET("/", showIndexPage)

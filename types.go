@@ -44,3 +44,12 @@ type UserPostgresql struct {
 	User      string
 	Password  string
 }
+
+// UserInMemory ...
+type UserInMemory struct {
+	ID        uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	User      string
+	Password  string
+}

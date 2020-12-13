@@ -135,20 +135,18 @@ func redirectShortURL(c *gin.Context) {
 
 	urlFromDB, err := (*urlDAO).findByID(id)
 	if err != nil {
-		// TODO: handle this.
+		c.HTML(
+			http.StatusInternalServerError,
+			"error5xx.html",
+			gin.H{
+				"title":             "Error",
+				"error_description": fmt.Sprintf(`Error redirecting to: %s`, shortURLParam),
+			},
+		)
 	} else {
 		c.Redirect(http.StatusMovedPermanently, urlFromDB.URL)
 	}
 }
-
-// func viewUrls(c *gin.Context) {
-// 	urls, err := (*urlDAO).findAll()
-// 	if err != nil {
-// 		c.AbortWithError(http.StatusInternalServerError, err)
-// 	}
-
-// 	c.JSON(http.StatusOK, urls)
-// }
 
 func login(c *gin.Context) {
 	type formUser struct {
@@ -433,6 +431,18 @@ func register(c *gin.Context) {
 	c.SetCookie("token", token, 3600, "", "", false, true)
 	c.Set("is_logged_in", true)
 
+	session := sessions.Default(c)
+	session.Set("user_logged_in", newUser)
+
+	if err := session.Save(); err != nil {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"ErrorTitle":   "Registration Failed",
+			"ErrorMessage": "Error creating user, contact the administrator.",
+		})
+
+		return
+	}
+
 	render(c, gin.H{
 		"title": "Successful registration & Login",
 	}, "login-successful.html")
@@ -447,4 +457,13 @@ func checkSession(c *gin.Context) {
 	fmt.Println("debug session ... end")
 
 	c.JSON(http.StatusOK, "OK...")
+}
+
+func viewUsers(c *gin.Context) {
+	users, err := (*userDAO).findAll()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, users)
 }

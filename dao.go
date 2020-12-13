@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
+
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
+
+	"crypto/rand"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -16,6 +20,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type randGenSrc struct{}
+
+func (s *randGenSrc) Seed(seed int64) {}
+
+func (s *randGenSrc) Uint64() (value uint64) {
+	binary.Read(rand.Reader, binary.BigEndian, &value)
+	return value
+}
 
 // URLDao ...
 type URLDao interface {
@@ -31,7 +44,7 @@ type UserDAO interface {
 	userExists(username string) (bool, error)
 	findByUsername(username string) (interface{}, error)
 	validateUserAndPassword(username, password string) (bool, error)
-	// findAll() ([]User, error)
+	findAll() ([]interface{}, error)
 }
 
 type memoryDB struct {
@@ -39,9 +52,15 @@ type memoryDB struct {
 	autoIncrement int
 }
 
-// InMemoryImpl ...
-type InMemoryImpl struct {
+// InMemoryURLDAOImpl ...
+type InMemoryURLDAOImpl struct {
 	DB *memoryDB
+}
+
+// InMemoryUserDAOImpl ...
+type InMemoryUserDAOImpl struct {
+	db       map[string]UserInMemory
+	rndIDGen randGenSrc
 }
 
 // MongoDBURLDAOImpl ...
@@ -71,7 +90,7 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 
 	switch engine {
 	case "memory":
-		dao = InMemoryImpl{
+		dao = InMemoryURLDAOImpl{
 			DB: &memoryDB{
 				db: map[int]string{},
 			},
@@ -123,8 +142,12 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 
 func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	var userDAO UserDAO
-	// TODO: missing "memory" here
 	switch engine {
+	case "memory":
+		userDAO = InMemoryUserDAOImpl{
+			db:       map[string]UserInMemory{},
+			rndIDGen: randGenSrc{},
+		}
 	case "mongo":
 		var collection *mongo.Collection
 		collection = mongoClient.Database("littleu").Collection("user")
@@ -157,7 +180,7 @@ func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	return &userDAO
 }
 
-func (im InMemoryImpl) save(url URL, user *interface{}) (int, error) {
+func (im InMemoryURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -168,11 +191,11 @@ func (im InMemoryImpl) save(url URL, user *interface{}) (int, error) {
 	return id, nil
 }
 
-func (im InMemoryImpl) findAll() (map[int]string, error) {
+func (im InMemoryURLDAOImpl) findAll() (map[int]string, error) {
 	return im.DB.db, nil
 }
 
-func (im InMemoryImpl) findByID(id int) (URL, error) {
+func (im InMemoryURLDAOImpl) findByID(id int) (URL, error) {
 	u, found := im.DB.db[id]
 	if found {
 		url := URL{
@@ -185,7 +208,7 @@ func (im InMemoryImpl) findByID(id int) (URL, error) {
 	return URL{}, fmt.Errorf("no url found for: %d", id)
 }
 
-func (im InMemoryImpl) update(id int, oldURL, newURL URL) (int, error) {
+func (im InMemoryURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -213,14 +236,12 @@ func (dao MongoUserDaoImpl) addUser(username, password string) (interface{}, err
 		Password:  hashPassword,
 	}
 
-	res, err := dao.collection.InsertOne(dao.ctx, newUser)
+	_, err := dao.collection.InsertOne(dao.ctx, newUser)
 	if err != nil {
-		return primitive.ObjectID{}, err
+		return UserMongo{}, err
 	}
 
-	insertedID, _ := res.InsertedID.(primitive.ObjectID)
-
-	return insertedID, nil
+	return newUser, nil
 }
 
 func (dao MongoUserDaoImpl) filterUser(filter interface{}) (UserMongo, error) {
@@ -490,12 +511,12 @@ func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, e
 		INSERT INTO users (created_at, updated_at, username, password) VALUES ($1, $2, $3, $4) RETURNING id
 	`
 
-	lastID, err := dao.db.Exec(createUserSQL, user.CreatedAt, user.UpdatedAt, user.User, user.Password)
+	_, err := dao.db.Exec(createUserSQL, user.CreatedAt, user.UpdatedAt, user.User, user.Password)
 	if err != nil {
 		return -1, err
 	}
 
-	return lastID, nil
+	return user, nil
 }
 
 func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, error) {
@@ -590,9 +611,9 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 	return -1, nil
 }
 
-func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
-	return map[int]string{}, nil
-}
+// func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
+// 	return map[int]string{}, nil
+// }
 
 func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
 	return URL{}, nil
@@ -642,4 +663,115 @@ func (dao PostgresqlUserImpl) validateUserAndPassword(username, password string)
 	}
 
 	return true, nil
+}
+
+func (dao InMemoryUserDAOImpl) addUser(username, password string) (interface{}, error) {
+	hashPassword := hashAndSalt([]byte(password))
+
+	id := dao.rndIDGen.Uint64()
+
+	newUser := UserInMemory{
+		ID:        id,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		User:      username,
+		Password:  hashPassword,
+	}
+
+	dao.db[username] = newUser
+
+	return newUser, nil
+}
+
+func (dao InMemoryUserDAOImpl) userExists(username string) (bool, error) {
+	_, exists := dao.db[username]
+	if !exists {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (dao InMemoryUserDAOImpl) findByUsername(username string) (interface{}, error) {
+	user, exists := dao.db[username]
+	if !exists {
+		return UserInMemory{}, fmt.Errorf("user '%s' not found in DB", username)
+	}
+
+	return user, nil
+}
+
+func (dao InMemoryUserDAOImpl) validateUserAndPassword(username, password string) (bool, error) {
+	user, err := dao.findByUsername(username)
+	if err != nil {
+		return false, err
+	}
+
+	u, ok := user.(UserInMemory)
+	if !ok {
+		return false, fmt.Errorf("error: incompatible types")
+	}
+
+	hashFromDatabase := []byte(u.Password)
+	if err := bcrypt.CompareHashAndPassword(hashFromDatabase, []byte(password)); err != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (dao InMemoryUserDAOImpl) findAll() ([]interface{}, error) {
+
+	users := []interface{}{}
+
+	for _, v := range dao.db {
+		users = append(users, v)
+	}
+
+	return users, nil
+}
+
+func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
+	filter := bson.D{}
+
+	var us []interface{}
+
+	users, err := dao.filterUsers(filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return []interface{}{}, nil
+		}
+	}
+
+	for _, u := range users {
+		us = append(us, u)
+	}
+
+	return us, nil
+}
+
+func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
+
+	query := `SELECT id, username, password, created_at, updated_at FROM users`
+
+	var us []interface{}
+
+	rows, err := dao.db.Query(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var user UserPostgresql
+		if err :=
+			rows.Scan(&user.ID, &user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt); err != nil {
+			return []interface{}{}, err
+		}
+		us = append(us, user)
+	}
+	if err := rows.Err(); err != nil {
+		return []interface{}{}, err
+	}
+
+	return us, nil
 }
