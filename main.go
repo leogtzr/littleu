@@ -58,6 +58,7 @@ func init() {
 
 	gob.Register(&UserMongo{})
 	gob.Register(&UserPostgresql{})
+	gob.Register(&UserInMemory{})
 }
 
 func main() {
