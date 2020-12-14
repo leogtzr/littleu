@@ -19,4 +19,6 @@ I am not the best Go programmer and I wo'nt be, I am 100% sure the code can alwa
 
 ## Technical details
 
-TODO...
+### Databases
+
+littleu supports mongo, postgres and an "in memory" approach.

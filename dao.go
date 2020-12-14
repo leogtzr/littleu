@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
-
+	"crypto/rand"
 	"database/sql"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log"
-
-	"crypto/rand"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -27,6 +25,7 @@ func (s *randGenSrc) Seed(seed int64) {}
 
 func (s *randGenSrc) Uint64() (value uint64) {
 	binary.Read(rand.Reader, binary.BigEndian, &value)
+
 	return value
 }
 
@@ -35,7 +34,7 @@ type URLDao interface {
 	save(url URL, user *interface{}) (int, error)
 	update(id int, oldURL, newURL URL) (int, error)
 	findByID(id int) (URL, error)
-	// findAll() (map[int]string, error)
+	findAll() (map[int]string, error)
 }
 
 // UserDAO ....
@@ -142,6 +141,7 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 
 func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
 	var userDAO UserDAO
+
 	switch engine {
 	case "memory":
 		userDAO = InMemoryUserDAOImpl{
@@ -395,9 +395,6 @@ func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	}
 
 	_, err = dao.collection.InsertOne(dao.ctx, urlDoc)
-	if err != nil {
-		return increment, err
-	}
 
 	return increment, nil
 }
@@ -607,14 +604,17 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	return maxID, nil
 }
 
+// TODO: finish this.
 func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	return -1, nil
 }
 
-// func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
-// 	return map[int]string{}, nil
-// }
+// TODO: finish this.
+func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
+	return map[int]string{}, nil
+}
 
+// TODO: finish this.
 func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
 	return URL{}, nil
 }
@@ -721,7 +721,6 @@ func (dao InMemoryUserDAOImpl) validateUserAndPassword(username, password string
 }
 
 func (dao InMemoryUserDAOImpl) findAll() ([]interface{}, error) {
-
 	users := []interface{}{}
 
 	for _, v := range dao.db {
@@ -751,7 +750,6 @@ func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
 }
 
 func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
-
 	query := `SELECT id, username, password, created_at, updated_at FROM users`
 
 	var us []interface{}
