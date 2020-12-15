@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,7 +50,7 @@ func (im InMemoryURLDAOImpl) findByID(id int) (URL, error) {
 		return url, nil
 	}
 
-	return URL{}, fmt.Errorf("no url found for: %d", id)
+	return URL{}, errorURLNotFound(id)
 }
 
 func (im InMemoryURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
@@ -59,7 +58,7 @@ func (im InMemoryURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	defer mu.Unlock()
 
 	if _, ok := im.DB.db[id]; !ok {
-		return id, fmt.Errorf("%d key not found in DB", id)
+		return id, errorURLNotFound(id)
 	}
 
 	newID := shortURLToID(newURL.URL, chars)
@@ -101,7 +100,7 @@ func (dao InMemoryUserDAOImpl) userExists(username string) (bool, error) {
 func (dao InMemoryUserDAOImpl) findByUsername(username string) (interface{}, error) {
 	user, exists := dao.db[username]
 	if !exists {
-		return UserInMemory{}, fmt.Errorf("user '%s' not found in DB", username)
+		return UserInMemory{}, errorUserNotFound(username)
 	}
 
 	return user, nil
@@ -115,7 +114,7 @@ func (dao InMemoryUserDAOImpl) validateUserAndPassword(username, password string
 
 	u, ok := user.(UserInMemory)
 	if !ok {
-		return false, fmt.Errorf("error: incompatible types")
+		return false, errorIncompatibleTypes()
 	}
 
 	hashFromDatabase := []byte(u.Password)

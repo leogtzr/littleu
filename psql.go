@@ -237,7 +237,7 @@ func (dao PostgresqlUserImpl) validateUserAndPassword(username, password string)
 
 	u, ok := user.(UserPostgresql)
 	if !ok {
-		return false, fmt.Errorf("error: incompatible types")
+		return false, errorIncompatibleTypes()
 	}
 
 	hashFromDatabase := []byte(u.Password)
