@@ -5,6 +5,7 @@ func initializeRoutes() {
 
 	router.POST("/api/login", generateToken)
 	router.GET("/api/users", viewUsers)
+	router.GET("/api/urls", viewURLs)
 
 	router.GET("/u/:url", redirectShortURL)
 	router.GET("/", showIndexPage)

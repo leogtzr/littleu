@@ -467,3 +467,12 @@ func viewUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, users)
 }
+
+func viewURLs(c *gin.Context) {
+	urls, err := (*urlDAO).findAll()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, urls)
+}
