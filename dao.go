@@ -609,9 +609,30 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 	return -1, nil
 }
 
-// TODO: finish this.
 func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
-	return map[int]string{}, nil
+	query := `SELECT short_id, url FROM urls`
+
+	urls := map[int]string{}
+
+	rows, err := dao.db.Query(query)
+	if err != nil {
+		return map[int]string{}, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int
+		var url string
+		if err := rows.Scan(&id, &url); err != nil {
+			return map[int]string{}, err
+		}
+		urls[id] = url
+
+	}
+	if err := rows.Err(); err != nil {
+		return map[int]string{}, err
+	}
+
+	return urls, nil
 }
 
 // TODO: finish this.
@@ -756,7 +777,7 @@ func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
 
 	rows, err := dao.db.Query(query)
 	if err != nil {
-		log.Fatal(err)
+		return []interface{}{}, err
 	}
 	defer rows.Close()
 	for rows.Next() {
