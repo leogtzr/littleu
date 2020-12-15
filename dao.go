@@ -637,7 +637,19 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 
 // TODO: finish this.
 func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
-	return URL{}, nil
+
+	query := `select url from urls where short_id = $1`
+	url := URL{}
+
+	err := dao.db.QueryRow(query, id).Scan(&url.URL)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return URL{}, fmt.Errorf("url with ID '%d' not found", id)
+		}
+		return URL{}, err
+	}
+
+	return url, nil
 }
 
 func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (bool, error) {
