@@ -137,7 +137,7 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 
 	u, ok := (*user).(*UserPostgresql)
 	if !ok {
-		return -1, fmt.Errorf("error: incompatible types")
+		return -1, errorIncompatibleTypes()
 	}
 
 	createURLSQL := `

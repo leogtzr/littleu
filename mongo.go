@@ -196,7 +196,7 @@ func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 
 	_, err = dao.collection.InsertOne(dao.ctx, urlDoc)
 
-	return increment, nil
+	return increment, err
 }
 
 func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
@@ -272,7 +272,7 @@ func (dao MongoDBURLDAOImpl) findByID(id int) (URL, error) {
 	url := URL{}
 	url.URL = urlDoc.URL
 
-	return URL{}, nil
+	return url, nil
 }
 
 func (dao MongoDBURLDAOImpl) getMaxShortID() (int, error) {
