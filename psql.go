@@ -51,7 +51,7 @@ func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, erro
 		dao.db.QueryRow(query, username).Scan(&user.ID, &user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return UserPostgresql{}, fmt.Errorf("user '%s' not found in DB", username)
+			return UserPostgresql{}, errorUserNotFound(username)
 		}
 
 		return UserPostgresql{}, err
@@ -61,7 +61,7 @@ func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, erro
 		return user, nil
 	}
 
-	return UserPostgresql{}, fmt.Errorf("user '%s' not found in DB", username)
+	return UserPostgresql{}, errorUserNotFound(username)
 }
 
 func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
@@ -87,10 +87,10 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 
 // URLExists ...
 func (dao PostgresqlURLDAOImpl) URLExists(urlID int) (bool, error) {
-
 	query := `select short_id from urls where short_id = $1`
 
 	var shortID int
+
 	err := dao.db.QueryRow(query, urlID).Scan(&shortID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -153,14 +153,13 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 }
 
 func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
-
 	exists, err := dao.URLExists(id)
 	if err != nil {
 		return id, fmt.Errorf("error updating URL with %d id", id)
 	}
 
 	if !exists {
-		return id, fmt.Errorf("%d key not found in DB", id)
+		return id, errorKeyNotFoundInDB(id)
 	}
 
 	newID := shortURLToID(newURL.URL, chars)
@@ -175,6 +174,7 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 	}
 
 	stmtQuery := `update urls set short_id = $1 where short_id = $2`
+
 	_, err = dao.db.Exec(stmtQuery, newID, id)
 	if err != nil {
 		return -1, err
@@ -192,16 +192,21 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 	if err != nil {
 		return map[int]string{}, err
 	}
+
 	defer rows.Close()
+
 	for rows.Next() {
 		var id int
+
 		var url string
+
 		if err := rows.Scan(&id, &url); err != nil {
 			return map[int]string{}, err
 		}
-		urls[id] = url
 
+		urls[id] = url
 	}
+
 	if err := rows.Err(); err != nil {
 		return map[int]string{}, err
 	}
@@ -210,7 +215,6 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 }
 
 func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
-
 	query := `select url from urls where short_id = $1`
 	url := URL{}
 
@@ -219,6 +223,7 @@ func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return URL{}, fmt.Errorf("url with ID '%d' not found", id)
 		}
+
 		return URL{}, err
 	}
 
@@ -257,15 +262,19 @@ func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
 	if err != nil {
 		return []interface{}{}, err
 	}
+
 	defer rows.Close()
+
 	for rows.Next() {
 		var user UserPostgresql
 		if err :=
 			rows.Scan(&user.ID, &user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt); err != nil {
 			return []interface{}{}, err
 		}
+
 		us = append(us, user)
 	}
+
 	if err := rows.Err(); err != nil {
 		return []interface{}{}, err
 	}

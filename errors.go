@@ -6,9 +6,12 @@ import (
 )
 
 var (
-	errNOURLFound        = errors.New("no url found")
-	errUserNotFound      = errors.New("user not found")
-	errIncompatibleTypes = errors.New("incompatible types")
+	errNOURLFound         = errors.New("no url found")
+	errUserNotFound       = errors.New("user not found")
+	errIncompatibleTypes  = errors.New("incompatible types")
+	errPasswordFieldEmpty = errors.New("password cannot be empty")
+	errUsernameFieldEmpty = errors.New("username cannot be empty")
+	errKeyNotFoundInDB    = errors.New("key not found")
 )
 
 func errorURLNotFound(url int) error {
@@ -21,4 +24,16 @@ func errorUserNotFound(username string) error {
 
 func errorIncompatibleTypes() error {
 	return fmt.Errorf("errorIncompatibleTypes %w", errIncompatibleTypes)
+}
+
+func errorPasswordFieldEmpty() error {
+	return fmt.Errorf("errPasswordFieldEmpty %w", errPasswordFieldEmpty)
+}
+
+func errorUsernameFieldEmpty() error {
+	return fmt.Errorf("errUsernameFieldEmpty %w", errUsernameFieldEmpty)
+}
+
+func errorKeyNotFoundInDB(id int) error {
+	return fmt.Errorf("errKeyNotFoundInDB %w : %d id", errKeyNotFoundInDB, id)
 }

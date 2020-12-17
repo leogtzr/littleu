@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -87,11 +86,11 @@ func hashAndSalt(pwd []byte) string {
 
 func validateNewUserFields(user, password string) error {
 	if strings.TrimSpace(password) == "" {
-		return errors.New("The password can't be empty")
+		return errorPasswordFieldEmpty()
 	}
 
 	if strings.TrimSpace(user) == "" {
-		return errors.New("The username can't be empty")
+		return errorUsernameFieldEmpty()
 	}
 
 	return nil

@@ -138,7 +138,7 @@ func (dao InMemoryUserDAOImpl) findAll() ([]interface{}, error) {
 func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
 	filter := bson.D{}
 
-	var us []interface{}
+	us := []interface{}{}
 
 	users, err := dao.filterUsers(filter)
 	if err != nil {

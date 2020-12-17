@@ -160,7 +160,7 @@ func (dao MongoUserDaoImpl) findByUsername(username string) (interface{}, error)
 
 	user, err := dao.filterUser(filter)
 	if err != nil {
-		return UserMongo{}, fmt.Errorf("user '%s' not found in DB", username)
+		return UserMongo{}, errorUserNotFound(username)
 	}
 
 	return user, nil
@@ -209,7 +209,7 @@ func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	}
 
 	if !exists {
-		return id, fmt.Errorf("%d key not found in DB", id)
+		return id, errorKeyNotFoundInDB(id)
 	}
 
 	newID := shortURLToID(newURL.URL, chars)
@@ -305,7 +305,7 @@ func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (
 
 	u, ok := user.(UserMongo)
 	if !ok {
-		return false, fmt.Errorf("error: incompatible types")
+		return false, errorIncompatibleTypes()
 	}
 
 	hashFromDatabase := []byte(u.Password)
