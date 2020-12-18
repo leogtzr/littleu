@@ -50,7 +50,7 @@ func CreateTokenString(user *interface{}, config *viper.Viper) (string, error) {
 
 	token, err := at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error creating signed string: %v", err)
 	}
 
 	return token, nil
@@ -79,7 +79,7 @@ func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
 
 	td.AccessToken, err = at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating signed string: %v", err)
 	}
 
 	rtClaims := jwt.MapClaims{}
@@ -90,7 +90,7 @@ func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
 
 	td.RefreshToken, err = rt.SignedString([]byte(config.GetString("REFRESH_SECRET")))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating signed string: %v", err)
 	}
 
 	return td, nil
@@ -104,7 +104,7 @@ func CreateAuth(userid uint64, td *TokenDetails) error {
 
 	errAccess := redisClient.Set(td.AccessUUID, strconv.Itoa(int(userid)), at.Sub(now)).Err()
 	if errAccess != nil {
-		return errAccess
+		return fmt.Errorf("error setting value: %v", errAccess)
 	}
 
 	return redisClient.Set(td.RefreshUUID, strconv.Itoa(int(userid)), rt.Sub(now)).Err()
@@ -135,7 +135,7 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing token: %v", err)
 	}
 
 	return token, nil
@@ -171,7 +171,7 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 
 		userID, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error extrating token meta data: %v", err)
 		}
 
 		return &AccessDetails{
@@ -187,7 +187,7 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 func FetchAuth(authD *AccessDetails) (uint64, error) {
 	userid, err := redisClient.Get(authD.AccessUUID).Result()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("error getting UUID: %v", err)
 	}
 
 	userID, _ := strconv.ParseUint(userid, 10, 64)
@@ -199,7 +199,7 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 func DeleteAuth(uuid string) (int64, error) {
 	deleted, err := redisClient.Del(uuid).Result()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("error deleting UUID: %v", err)
 	}
 
 	return deleted, nil

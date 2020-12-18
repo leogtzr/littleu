@@ -316,7 +316,7 @@ func createTokenFromUser(userid string, config *viper.Viper) (*TokenDetails, err
 
 	td.AccessToken, err = at.SignedString([]byte(config.GetString("secret")))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating signed string: %v", err)
 	}
 
 	return td, nil

@@ -38,7 +38,7 @@ func (dao MongoUserDaoImpl) addUser(username, password string) (interface{}, err
 
 	_, err := dao.collection.InsertOne(dao.ctx, newUser)
 	if err != nil {
-		return UserMongo{}, err
+		return UserMongo{}, fmt.Errorf("error inserting user: %v", err)
 	}
 
 	return newUser, nil
@@ -48,7 +48,7 @@ func (dao MongoUserDaoImpl) filterUser(filter interface{}) (UserMongo, error) {
 	var user UserMongo
 	err := dao.collection.FindOne(dao.ctx, filter).Decode(&user)
 
-	return user, err
+	return user, fmt.Errorf("error getting user: %v", err)
 }
 
 func (dao MongoUserDaoImpl) filterUsers(filter interface{}) ([]UserMongo, error) {
@@ -56,7 +56,7 @@ func (dao MongoUserDaoImpl) filterUsers(filter interface{}) ([]UserMongo, error)
 
 	cur, err := dao.collection.Find(dao.ctx, filter)
 	if err != nil {
-		return users, err
+		return users, fmt.Errorf("error getting user: %v", err)
 	}
 
 	for cur.Next(dao.ctx) {
@@ -64,14 +64,14 @@ func (dao MongoUserDaoImpl) filterUsers(filter interface{}) ([]UserMongo, error)
 
 		err := cur.Decode(&u)
 		if err != nil {
-			return users, err
+			return users, fmt.Errorf("error converting user: %v", err)
 		}
 
 		users = append(users, u)
 	}
 
 	if err := cur.Err(); err != nil {
-		return users, err
+		return users, fmt.Errorf("error: %v", err)
 	}
 
 	// once exhausted, close the cursor
@@ -90,7 +90,7 @@ func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, erro
 
 	cur, err := dao.collection.Find(dao.ctx, filter)
 	if err != nil {
-		return urls, err
+		return urls, fmt.Errorf("error finding user: %v", err)
 	}
 
 	for cur.Next(dao.ctx) {
@@ -98,14 +98,14 @@ func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, erro
 
 		err := cur.Decode(&url)
 		if err != nil {
-			return urls, err
+			return urls, fmt.Errorf("error converting user: %v", err)
 		}
 
 		urls = append(urls, url)
 	}
 
 	if err := cur.Err(); err != nil {
-		return urls, err
+		return urls, fmt.Errorf("error closing db cursor: %v", err)
 	}
 
 	// once exhausted, close the cursor
@@ -196,7 +196,7 @@ func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 
 	_, err = dao.collection.InsertOne(dao.ctx, urlDoc)
 
-	return increment, err
+	return increment, fmt.Errorf("error inserting url: %v", err)
 }
 
 func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
@@ -205,7 +205,7 @@ func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 
 	exists, err := dao.URLExists(id)
 	if err != nil {
-		return id, fmt.Errorf("error updating URL with %d id", id)
+		return id, errorUpdatingURL(id)
 	}
 
 	if !exists {
@@ -216,7 +216,7 @@ func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 
 	exists, err = dao.URLExists(id)
 	if err != nil {
-		return id, fmt.Errorf("error updating URL with %d id", id)
+		return id, errorUpdatingURL(id)
 	}
 
 	if !exists {
@@ -232,7 +232,7 @@ func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	)
 
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error updating url: %v", err)
 	}
 
 	return newID, nil
@@ -265,7 +265,7 @@ func (dao MongoDBURLDAOImpl) findByID(id int) (URL, error) {
 	err := dao.collection.FindOne(dao.ctx, filter).Decode(&urlDoc)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return URL{}, err
+			return URL{}, fmt.Errorf("error, no documents: %v", err)
 		}
 	}
 
@@ -287,7 +287,7 @@ func (dao MongoDBURLDAOImpl) getMaxShortID() (int, error) {
 			return 0, nil
 		}
 
-		return -1, err
+		return -1, fmt.Errorf("error no documents: %v", err)
 	}
 
 	return url.ShortID, nil

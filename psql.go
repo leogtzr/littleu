@@ -36,7 +36,7 @@ func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, e
 
 	_, err := dao.db.Exec(createUserSQL, user.CreatedAt, user.UpdatedAt, user.User, user.Password)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error adding user: %v", err)
 	}
 
 	return user, nil
@@ -54,7 +54,7 @@ func (dao PostgresqlUserImpl) findByUsername(username string) (interface{}, erro
 			return UserPostgresql{}, errorUserNotFound(username)
 		}
 
-		return UserPostgresql{}, err
+		return UserPostgresql{}, fmt.Errorf("error getting username: %v", err)
 	}
 
 	if user.User == username {
@@ -75,7 +75,7 @@ func (dao PostgresqlUserImpl) userExists(username string) (bool, error) {
 			return false, nil
 		}
 
-		return false, err
+		return false, fmt.Errorf("error getting user: %v", err)
 	}
 
 	if user.User == username {
@@ -97,7 +97,7 @@ func (dao PostgresqlURLDAOImpl) URLExists(urlID int) (bool, error) {
 			return false, nil
 		}
 
-		return false, err
+		return false, fmt.Errorf("error getting url: %v", err)
 	}
 
 	if shortID == urlID {
@@ -118,7 +118,7 @@ func (dao PostgresqlURLDAOImpl) getMaxShortID() (int, error) {
 			return 1, nil
 		}
 
-		return -1, err
+		return -1, fmt.Errorf("error getting max url id: %v", err)
 	}
 
 	return id, nil
@@ -146,7 +146,7 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 
 	_, err = dao.db.Exec(createURLSQL, time.Now(), time.Now(), url.URL, maxID, u.ID)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error creating url: %v", err)
 	}
 
 	return maxID, nil
@@ -155,7 +155,7 @@ func (dao PostgresqlURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 	exists, err := dao.URLExists(id)
 	if err != nil {
-		return id, fmt.Errorf("error updating URL with %d id", id)
+		return id, errorUpdatingURL(id)
 	}
 
 	if !exists {
@@ -166,7 +166,7 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 
 	exists, err = dao.URLExists(id)
 	if err != nil {
-		return id, fmt.Errorf("error updating URL with %d id", id)
+		return id, errorUpdatingURL(id)
 	}
 
 	if !exists {
@@ -177,7 +177,7 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 
 	_, err = dao.db.Exec(stmtQuery, newID, id)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("error updating url: %v", err)
 	}
 
 	return newID, nil
@@ -190,7 +190,7 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 
 	rows, err := dao.db.Query(query)
 	if err != nil {
-		return map[int]string{}, err
+		return map[int]string{}, fmt.Errorf("error getting urls: %v", err)
 	}
 
 	defer rows.Close()
@@ -201,14 +201,14 @@ func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
 		var url string
 
 		if err := rows.Scan(&id, &url); err != nil {
-			return map[int]string{}, err
+			return map[int]string{}, fmt.Errorf("error getting urls: %v", err)
 		}
 
 		urls[id] = url
 	}
 
 	if err := rows.Err(); err != nil {
-		return map[int]string{}, err
+		return map[int]string{}, fmt.Errorf("error closing cursor: %v", err)
 	}
 
 	return urls, nil
@@ -224,7 +224,7 @@ func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
 			return URL{}, fmt.Errorf("url with ID '%d' not found", id)
 		}
 
-		return URL{}, err
+		return URL{}, fmt.Errorf("error getting url: %v", err)
 	}
 
 	return url, nil
@@ -260,7 +260,7 @@ func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
 
 	rows, err := dao.db.Query(query)
 	if err != nil {
-		return []interface{}{}, err
+		return []interface{}{}, fmt.Errorf("error getting users: %v", err)
 	}
 
 	defer rows.Close()
@@ -269,14 +269,14 @@ func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
 		var user UserPostgresql
 		if err :=
 			rows.Scan(&user.ID, &user.User, &user.Password, &user.CreatedAt, &user.UpdatedAt); err != nil {
-			return []interface{}{}, err
+			return []interface{}{}, fmt.Errorf("error getting users: %v", err)
 		}
 
 		us = append(us, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []interface{}{}, err
+		return []interface{}{}, fmt.Errorf("error getting users: %v", err)
 	}
 
 	return us, nil

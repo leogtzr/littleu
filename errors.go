@@ -12,6 +12,7 @@ var (
 	errPasswordFieldEmpty = errors.New("password cannot be empty")
 	errUsernameFieldEmpty = errors.New("username cannot be empty")
 	errKeyNotFoundInDB    = errors.New("key not found")
+	errUpdatingURL        = errors.New("updating url")
 )
 
 func errorURLNotFound(url int) error {
@@ -36,4 +37,8 @@ func errorUsernameFieldEmpty() error {
 
 func errorKeyNotFoundInDB(id int) error {
 	return fmt.Errorf("errKeyNotFoundInDB %w : %d id", errKeyNotFoundInDB, id)
+}
+
+func errorUpdatingURL(id int) error {
+	return fmt.Errorf("errUpdatingURL %w : %d id", errUpdatingURL, id)
 }
