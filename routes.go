@@ -19,4 +19,7 @@ func initializeRoutes(config *viper.Viper) {
 	router.GET("/register", ensureNotLoggedIn(), showRegistrationPage)
 	router.POST("/register", ensureNotLoggedIn(), register(config))
 	router.GET("/session", checkSession)
+
+	// stats URLs
+	router.GET("/stats", showStatsPage)
 }
