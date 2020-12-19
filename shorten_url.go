@@ -70,7 +70,7 @@ func shorturl(c *gin.Context) {
 
 	fqdn, err := fqdn.FqdnHostname()
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
 	domain := net.JoinHostPort(fqdn, serverPort)
@@ -115,7 +115,7 @@ func changeLink(c *gin.Context) {
 
 	_, err := (*urlDAO).update(URLID, oldURL, newURL)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
 	c.HTML(
@@ -148,108 +148,111 @@ func redirectShortURL(c *gin.Context) {
 	}
 }
 
-func login(c *gin.Context) {
-	type formUser struct {
-		Username string `form:"username"`
-		Password string `form:"password"`
+func login(config *viper.Viper) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		type formUser struct {
+			Username string `form:"username"`
+			Password string `form:"password"`
+		}
+
+		var ux formUser
+		if err := c.ShouldBind(&ux); err != nil {
+			c.JSON(http.StatusUnprocessableEntity, "invalid data provided")
+
+			return
+		}
+
+		if err := validateNewUserFields(ux.Username, ux.Password); err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		exist, err := (*userDAO).userExists(ux.Username)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		if !exist {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": "User does not exist",
+			})
+
+			return
+		}
+
+		match, err := (*userDAO).validateUserAndPassword(ux.Username, ux.Password)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		if !match {
+			c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": "Bad credentials",
+			})
+
+			return
+		}
+
+		user, err := (*userDAO).findByUsername(ux.Username)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		token, err := CreateTokenString(&user, config)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"ErrorTitle":   "Login Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		c.SetCookie("token", token, 3600, "", "", false, true)
+		c.Set("is_logged_in", true)
+
+		session := sessions.Default(c)
+		session.Set("user_logged_in", user)
+
+		if err := session.Save(); err != nil {
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": "Error creating user, contact the administrator.",
+			})
+
+			return
+		}
+
+		c.HTML(
+			http.StatusOK,
+			"index.html",
+			gin.H{
+				"title": "Home",
+			},
+		)
 	}
 
-	var ux formUser
-	if err := c.ShouldBind(&ux); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, "invalid data provided")
-
-		return
-	}
-
-	if err := validateNewUserFields(ux.Username, ux.Password); err != nil {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	exist, err := (*userDAO).userExists(ux.Username)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	if !exist {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": "User does not exist",
-		})
-
-		return
-	}
-
-	match, err := (*userDAO).validateUserAndPassword(ux.Username, ux.Password)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	if !match {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": "Bad credentials",
-		})
-
-		return
-	}
-
-	user, err := (*userDAO).findByUsername(ux.Username)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	token, err := CreateTokenString(&user, envConfig)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "login.html", gin.H{
-			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	c.SetCookie("token", token, 3600, "", "", false, true)
-	c.Set("is_logged_in", true)
-
-	session := sessions.Default(c)
-	session.Set("user_logged_in", user)
-
-	if err := session.Save(); err != nil {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "Error creating user, contact the administrator.",
-		})
-
-		return
-	}
-
-	c.HTML(
-		http.StatusOK,
-		"index.html",
-		gin.H{
-			"title": "Home",
-		},
-	)
 }
 
 func generateToken(c *gin.Context) {
@@ -322,22 +325,26 @@ func createTokenFromUser(userid string, config *viper.Viper) (*TokenDetails, err
 	return td, nil
 }
 
-func logout(c *gin.Context) {
-	au, err := ExtractTokenMetadata(c.Request)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, "unauthorized")
+func logout(config *viper.Viper) gin.HandlerFunc {
 
-		return
+	return func(c *gin.Context) {
+		au, err := ExtractTokenMetadata(c.Request, config)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, "unauthorized")
+
+			return
+		}
+
+		deleted, delErr := DeleteAuth(au.AccessUUID)
+		if delErr != nil || deleted == 0 { // if any goes wrong
+			c.JSON(http.StatusUnauthorized, "unauthorized")
+
+			return
+		}
+
+		c.JSON(http.StatusOK, "Successfully logged out")
 	}
 
-	deleted, delErr := DeleteAuth(au.AccessUUID)
-	if delErr != nil || deleted == 0 { // if any goes wrong
-		c.JSON(http.StatusUnauthorized, "unauthorized")
-
-		return
-	}
-
-	c.JSON(http.StatusOK, "Successfully logged out")
 }
 
 // Render one of HTML, JSON or CSV based on the 'Accept' header of the request
@@ -374,78 +381,81 @@ func showRegistrationPage(c *gin.Context) {
 	)
 }
 
-func register(c *gin.Context) {
-	// Obtain the POSTed username and password values
-	username := c.PostForm("username")
-	password := c.PostForm("password")
+func register(config *viper.Viper) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Obtain the POSTed username and password values
+		username := c.PostForm("username")
+		password := c.PostForm("password")
 
-	if err := validateNewUserFields(username, password); err != nil {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": err.Error(),
-		})
+		if err := validateNewUserFields(username, password); err != nil {
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": err.Error(),
+			})
 
-		return
+			return
+		}
+
+		hashPassword := hashAndSalt([]byte(password))
+
+		exists, err := (*userDAO).userExists(username)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		if exists {
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": "User already exists",
+			})
+
+			return
+		}
+
+		newUser, err := (*userDAO).addUser(username, hashPassword)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v", err)
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": "Error creating user, contact the administrator.",
+			})
+		}
+
+		token, err := CreateTokenString(&newUser, config)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": err.Error(),
+			})
+
+			return
+		}
+
+		c.SetCookie("token", token, 3600, "", "", false, true)
+		c.Set("is_logged_in", true)
+
+		session := sessions.Default(c)
+		session.Set("user_logged_in", newUser)
+
+		if err := session.Save(); err != nil {
+			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+				"ErrorTitle":   "Registration Failed",
+				"ErrorMessage": "Error creating user, contact the administrator.",
+			})
+
+			return
+		}
+
+		render(c, gin.H{
+			"title": "Successful registration & Login",
+		}, "login-successful.html")
 	}
 
-	hashPassword := hashAndSalt([]byte(password))
-
-	exists, err := (*userDAO).userExists(username)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	if exists {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "User already exists",
-		})
-
-		return
-	}
-
-	newUser, err := (*userDAO).addUser(username, hashPassword)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v", err)
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "Error creating user, contact the administrator.",
-		})
-	}
-
-	token, err := CreateTokenString(&newUser, envConfig)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": err.Error(),
-		})
-
-		return
-	}
-
-	c.SetCookie("token", token, 3600, "", "", false, true)
-	c.Set("is_logged_in", true)
-
-	session := sessions.Default(c)
-	session.Set("user_logged_in", newUser)
-
-	if err := session.Save(); err != nil {
-		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
-			"ErrorTitle":   "Registration Failed",
-			"ErrorMessage": "Error creating user, contact the administrator.",
-		})
-
-		return
-	}
-
-	render(c, gin.H{
-		"title": "Successful registration & Login",
-	}, "login-successful.html")
 }
 
 func checkSession(c *gin.Context) {
@@ -462,7 +472,7 @@ func checkSession(c *gin.Context) {
 func viewUsers(c *gin.Context) {
 	users, err := (*userDAO).findAll()
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
 	c.JSON(http.StatusOK, users)

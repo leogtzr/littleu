@@ -1,6 +1,8 @@
 package main
 
-func initializeRoutes() {
+import "github.com/spf13/viper"
+
+func initializeRoutes(config *viper.Viper) {
 	router.Use(setUserStatus())
 
 	router.POST("/api/login", generateToken)
@@ -11,10 +13,10 @@ func initializeRoutes() {
 	router.GET("/", showIndexPage)
 	router.POST("/u/shorturl", checkUserMiddleware(), shorturl)
 	router.POST("/u/changelink", changeLink)
-	router.POST("/login", login)
+	router.POST("/login", login(config))
 	router.GET("/login", ensureNotLoggedIn(), showLoginPage)
-	router.POST("/logout", TokenAuthMiddleware(), logout)
+	router.POST("/logout", TokenAuthMiddleware(config), logout(config))
 	router.GET("/register", ensureNotLoggedIn(), showRegistrationPage)
-	router.POST("/register", ensureNotLoggedIn(), register)
+	router.POST("/register", ensureNotLoggedIn(), register(config))
 	router.GET("/session", checkSession)
 }

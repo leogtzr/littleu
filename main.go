@@ -83,7 +83,7 @@ func main() {
 	router.LoadHTMLGlob("templates/*")
 
 	// Initialize the routes
-	initializeRoutes()
+	initializeRoutes(envConfig)
 
 	// Start serving the applications
 	if err := router.Run(net.JoinHostPort("", serverPort)); err != nil {

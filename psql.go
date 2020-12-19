@@ -221,7 +221,7 @@ func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
 	err := dao.db.QueryRow(query, id).Scan(&url.URL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return URL{}, fmt.Errorf("url with ID '%d' not found", id)
+			return URL{}, errorURLNotFound(id)
 		}
 
 		return URL{}, fmt.Errorf("error getting url: %v", err)

@@ -38,7 +38,7 @@ func (dao MongoUserDaoImpl) addUser(username, password string) (interface{}, err
 
 	_, err := dao.collection.InsertOne(dao.ctx, newUser)
 	if err != nil {
-		return UserMongo{}, fmt.Errorf("error inserting user: %v", err)
+		return UserMongo{}, fmt.Errorf("error inserting user: %w", err)
 	}
 
 	return newUser, nil

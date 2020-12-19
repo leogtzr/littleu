@@ -50,7 +50,7 @@ func CreateTokenString(user *interface{}, config *viper.Viper) (string, error) {
 
 	token, err := at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {
-		return "", fmt.Errorf("error creating signed string: %v", err)
+		return "", fmt.Errorf("error creating signed string: %w", err)
 	}
 
 	return token, nil
@@ -79,7 +79,7 @@ func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
 
 	td.AccessToken, err = at.SignedString([]byte(config.GetString("ACCESS_SECRET")))
 	if err != nil {
-		return nil, fmt.Errorf("error creating signed string: %v", err)
+		return nil, fmt.Errorf("error creating signed string: %w", err)
 	}
 
 	rtClaims := jwt.MapClaims{}
@@ -90,7 +90,7 @@ func CreateToken(userid uint64, config *viper.Viper) (*TokenDetails, error) {
 
 	td.RefreshToken, err = rt.SignedString([]byte(config.GetString("REFRESH_SECRET")))
 	if err != nil {
-		return nil, fmt.Errorf("error creating signed string: %v", err)
+		return nil, fmt.Errorf("error creating signed string: %w	", err)
 	}
 
 	return td, nil
@@ -104,7 +104,7 @@ func CreateAuth(userid uint64, td *TokenDetails) error {
 
 	errAccess := redisClient.Set(td.AccessUUID, strconv.Itoa(int(userid)), at.Sub(now)).Err()
 	if errAccess != nil {
-		return fmt.Errorf("error setting value: %v", errAccess)
+		return fmt.Errorf("error setting value: %w", errAccess)
 	}
 
 	return redisClient.Set(td.RefreshUUID, strconv.Itoa(int(userid)), rt.Sub(now)).Err()
@@ -123,7 +123,7 @@ func ExtractToken(r *http.Request) string {
 }
 
 // VerifyToken ...
-func VerifyToken(r *http.Request) (*jwt.Token, error) {
+func VerifyToken(r *http.Request, config *viper.Viper) (*jwt.Token, error) {
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Make sure that the token method conform to "SigningMethodHMAC"
@@ -131,19 +131,19 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(envConfig.GetString("ACCESS_SECRET")), nil
+		return []byte(config.GetString("ACCESS_SECRET")), nil
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("error parsing token: %v", err)
+		return nil, fmt.Errorf("error parsing token: %w", err)
 	}
 
 	return token, nil
 }
 
 // TokenValid ...
-func TokenValid(r *http.Request) error {
-	token, err := VerifyToken(r)
+func TokenValid(r *http.Request, config *viper.Viper) error {
+	token, err := VerifyToken(r, config)
 	if err != nil {
 		return err
 	}
@@ -156,8 +156,8 @@ func TokenValid(r *http.Request) error {
 }
 
 // ExtractTokenMetadata ...
-func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
-	token, err := VerifyToken(r)
+func ExtractTokenMetadata(r *http.Request, config *viper.Viper) (*AccessDetails, error) {
+	token, err := VerifyToken(r, config)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 
 		userID, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("error extrating token meta data: %v", err)
+			return nil, fmt.Errorf("error extrating token meta data: %w", err)
 		}
 
 		return &AccessDetails{
@@ -187,7 +187,7 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 func FetchAuth(authD *AccessDetails) (uint64, error) {
 	userid, err := redisClient.Get(authD.AccessUUID).Result()
 	if err != nil {
-		return 0, fmt.Errorf("error getting UUID: %v", err)
+		return 0, fmt.Errorf("error getting UUID: %w", err)
 	}
 
 	userID, _ := strconv.ParseUint(userid, 10, 64)
@@ -199,16 +199,16 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 func DeleteAuth(uuid string) (int64, error) {
 	deleted, err := redisClient.Del(uuid).Result()
 	if err != nil {
-		return 0, fmt.Errorf("error deleting UUID: %v", err)
+		return 0, fmt.Errorf("error deleting UUID: %w", err)
 	}
 
 	return deleted, nil
 }
 
 // TokenAuthMiddleware ...
-func TokenAuthMiddleware() gin.HandlerFunc {
+func TokenAuthMiddleware(config *viper.Viper) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		err := TokenValid(c.Request)
+		err := TokenValid(c.Request, config)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, err.Error())
 			c.Abort()

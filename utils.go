@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -68,7 +67,7 @@ func readConfig(filename, configPath string, defaults map[string]interface{}) (*
 
 	err := v.ReadInConfig()
 
-	return v, fmt.Errorf("error reading configuration: %v", err)
+	return v, err
 }
 
 func hashAndSalt(pwd []byte) string {
