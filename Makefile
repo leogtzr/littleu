@@ -1,12 +1,9 @@
-.DEFAULT_GOAL := install
+.DEFAULT_GOAL := build
 
-# INSTALL_SCRIPT=./install.sh
 BIN_FILE=littleu
 
-install:
-	go build -o "${BIN_FILE}"
-	echo "Build successfull, running binary."
-	./"${BIN_FILE}"
+build:
+	@go build -o "${BIN_FILE}"
 
 clean:
 	go clean
@@ -25,3 +22,6 @@ cover:
 
 run:
 	./"${BIN_FILE}"
+
+lint:
+	golangci-lint run --enable-all
