@@ -48,7 +48,7 @@ func (dao MongoUserDaoImpl) filterUser(filter interface{}) (UserMongo, error) {
 	var user UserMongo
 	err := dao.collection.FindOne(dao.ctx, filter).Decode(&user)
 
-	return user, fmt.Errorf("error getting user: %v", err)
+	return user, err
 }
 
 func (dao MongoUserDaoImpl) filterUsers(filter interface{}) ([]UserMongo, error) {
