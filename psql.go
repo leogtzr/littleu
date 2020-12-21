@@ -20,7 +20,7 @@ type PostgresqlURLDAOImpl struct {
 }
 
 func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, error) {
-	hashPassword := hashAndSalt([]byte(password))
+	hashPassword := password
 
 	user := UserPostgresql{
 		ID:        -1,
@@ -183,32 +183,40 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 	return newID, nil
 }
 
-func (dao PostgresqlURLDAOImpl) findAll() (map[int]string, error) {
-	query := `SELECT short_id, url FROM urls`
+func (dao PostgresqlURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error) {
 
-	urls := map[int]string{}
+	userDB, ok := (*user).(UserPostgresql)
+	if !ok {
+		return []URLStat{}, errorIncompatibleTypes()
+	}
 
-	rows, err := dao.db.Query(query)
+	query := `SELECT short_id, url FROM urls where user_id = $1`
+
+	urls := []URLStat{}
+
+	rows, err := dao.db.Query(query, userDB.ID)
 	if err != nil {
-		return map[int]string{}, fmt.Errorf("error getting urls: %v", err)
+		return []URLStat{}, fmt.Errorf("error getting urls: %v", err)
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
-		var id int
-
+		var shortID int
 		var url string
 
-		if err := rows.Scan(&id, &url); err != nil {
-			return map[int]string{}, fmt.Errorf("error getting urls: %v", err)
+		if err := rows.Scan(&shortID, &url); err != nil {
+			return []URLStat{}, fmt.Errorf("error getting urls: %v", err)
 		}
 
-		urls[id] = url
+		urls = append(urls, URLStat{
+			shortID: shortID,
+			url:     url,
+		})
 	}
 
 	if err := rows.Err(); err != nil {
-		return map[int]string{}, fmt.Errorf("error closing cursor: %v", err)
+		return []URLStat{}, fmt.Errorf("error closing cursor: %v", err)
 	}
 
 	return urls, nil
@@ -246,6 +254,7 @@ func (dao PostgresqlUserImpl) validateUserAndPassword(username, password string)
 	}
 
 	hashFromDatabase := []byte(u.Password)
+
 	if err := bcrypt.CompareHashAndPassword(hashFromDatabase, []byte(password)); err != nil {
 		return false, nil
 	}

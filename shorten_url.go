@@ -479,7 +479,23 @@ func viewUsers(c *gin.Context) {
 }
 
 func viewURLs(c *gin.Context) {
-	urls, err := (*urlDAO).findAll()
+	session := sessions.Default(c)
+	userFound := session.Get("user_logged_in")
+
+	if userFound == nil {
+		c.HTML(
+			http.StatusInternalServerError,
+			"error5xx.html",
+			gin.H{
+				"title":             "Error",
+				"error_description": `You have to be logged in.`,
+			},
+		)
+
+		return
+	}
+
+	urls, err := (*urlDAO).findAllByUser(&userFound)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}

@@ -27,6 +27,12 @@ type URLChange struct {
 	NewURL   string `form:"new_url"`
 }
 
+// URLStat ...
+type URLStat struct {
+	shortID int
+	url     string
+}
+
 // UserMongo ...
 type UserMongo struct {
 	ID        primitive.ObjectID `json:"_id" bson:"_id"`

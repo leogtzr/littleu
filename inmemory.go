@@ -36,8 +36,24 @@ func (im InMemoryURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	return id, nil
 }
 
-func (im InMemoryURLDAOImpl) findAll() (map[int]string, error) {
-	return im.DB.db, nil
+func (im InMemoryURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error) {
+	_, ok := (*user).(UserInMemory)
+	if !ok {
+		return []URLStat{}, errorIncompatibleTypes()
+	}
+
+	// shortID:int, url:string
+	urls := []URLStat{}
+
+	// dummy impl...
+	for shortID, url := range im.DB.db {
+		urls = append(urls, URLStat{
+			shortID: shortID,
+			url:     url,
+		})
+	}
+
+	return urls, nil
 }
 
 func (im InMemoryURLDAOImpl) findByID(id int) (URL, error) {
@@ -71,7 +87,7 @@ func (im InMemoryURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 }
 
 func (dao InMemoryUserDAOImpl) addUser(username, password string) (interface{}, error) {
-	hashPassword := hashAndSalt([]byte(password))
+	hashPassword := password
 
 	id := dao.rndIDGen.Uint64()
 

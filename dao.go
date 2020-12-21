@@ -27,7 +27,7 @@ type URLDao interface {
 	save(url URL, user *interface{}) (int, error)
 	update(id int, oldURL, newURL URL) (int, error)
 	findByID(id int) (URL, error)
-	findAll() (map[int]string, error)
+	findAllByUser(id *interface{}) ([]URLStat, error)
 }
 
 // UserDAO ....
