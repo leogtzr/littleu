@@ -188,7 +188,7 @@ func (dao MongoDBURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) {
 }
 
 func (dao MongoDBURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error) {
-	userDB, ok := (*user).(UserMongo)
+	userDB, ok := (*user).(*UserMongo)
 	if !ok {
 		return []URLStat{}, errorIncompatibleTypes()
 	}

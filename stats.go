@@ -27,11 +27,25 @@ func showStatsPage(c *gin.Context) {
 	// TODO: grab user's URLs...
 	// TODO: pending.
 
+	urlStats, err := (*urlDAO).findAllByUser(&userFound)
+	if err != nil {
+		c.HTML(
+			http.StatusInternalServerError,
+			"error5xx.html",
+			gin.H{
+				"title":             "Error",
+				"error_description": err.Error(),
+			},
+		)
+		return
+	}
+
 	c.HTML(
 		http.StatusOK,
 		"stats.html",
 		gin.H{
 			"title": "Home",
+			"urls":  urlStats,
 		},
 	)
 }
