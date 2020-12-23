@@ -35,6 +35,7 @@ func showStatsPage(c *gin.Context) {
 				"error_description": err.Error(),
 			},
 		)
+
 		return
 	}
 
@@ -44,7 +45,7 @@ func showStatsPage(c *gin.Context) {
 		http.StatusOK,
 		"stats.html",
 		gin.H{
-			"title": "Home",
+			"title": "URL Stats",
 			"urls":  urlsFull,
 		},
 	)

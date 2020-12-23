@@ -252,7 +252,6 @@ func login(config *viper.Viper) gin.HandlerFunc {
 			},
 		)
 	}
-
 }
 
 func generateToken(c *gin.Context) {
@@ -326,7 +325,6 @@ func createTokenFromUser(userid string, config *viper.Viper) (*TokenDetails, err
 }
 
 func logout(config *viper.Viper) gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		au, err := ExtractTokenMetadata(c.Request, config)
 		if err != nil {
@@ -455,7 +453,6 @@ func register(config *viper.Viper) gin.HandlerFunc {
 			"title": "Successful registration & Login",
 		}, "login-successful.html")
 	}
-
 }
 
 func checkSession(c *gin.Context) {

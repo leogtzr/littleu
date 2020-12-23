@@ -73,7 +73,7 @@ func (dao MongoDBURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 
 	_, err = dao.collection.InsertOne(dao.ctx, urlDoc)
 
-	return increment, fmt.Errorf("error inserting url: %v", err)
+	return increment, fmt.Errorf("error inserting url: %w", err)
 }
 
 func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, error) {
@@ -82,7 +82,7 @@ func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, erro
 
 	cur, err := dao.collection.Find(dao.ctx, filter)
 	if err != nil {
-		return urls, fmt.Errorf("error finding user: %v", err)
+		return urls, fmt.Errorf("error finding user: %w", err)
 	}
 
 	for cur.Next(dao.ctx) {
@@ -90,7 +90,7 @@ func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, erro
 
 		err := cur.Decode(&url)
 		if err != nil {
-			return urls, fmt.Errorf("error converting user: %v", err)
+			return urls, fmt.Errorf("error converting user: %w", err)
 		}
 
 		urls = append(urls, url)

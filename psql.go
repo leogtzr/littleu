@@ -202,6 +202,7 @@ func (dao PostgresqlURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, err
 
 	for rows.Next() {
 		var shortID int
+
 		var url string
 
 		if err := rows.Scan(&shortID, &url); err != nil {
