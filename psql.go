@@ -184,8 +184,7 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 }
 
 func (dao PostgresqlURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error) {
-
-	userDB, ok := (*user).(UserPostgresql)
+	userDB, ok := (*user).(*UserPostgresql)
 	if !ok {
 		return []URLStat{}, errorIncompatibleTypes()
 	}

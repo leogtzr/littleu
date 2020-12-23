@@ -202,10 +202,6 @@ func (dao MongoDBURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error)
 		return []URLStat{}, nil
 	}
 
-	fmt.Println("debug 1")
-	fmt.Println(allURLs)
-	fmt.Println("debug 2")
-
 	return toURLStat(&allURLs), nil
 }
 

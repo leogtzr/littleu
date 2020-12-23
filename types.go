@@ -33,6 +33,13 @@ type URLStat struct {
 	url     string
 }
 
+// URLStatFull is basically a URLStat but instead of the short ID, it has the short URL corresponding
+// to the short ID value.
+type URLStatFull struct {
+	ShortURL    string
+	OriginalURL string
+}
+
 // UserMongo ...
 type UserMongo struct {
 	ID        primitive.ObjectID `json:"_id" bson:"_id"`

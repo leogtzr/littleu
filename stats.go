@@ -24,9 +24,7 @@ func showStatsPage(c *gin.Context) {
 		return
 	}
 
-	// TODO: grab user's URLs...
-	// TODO: pending.
-
+	// Document test ...
 	urlStats, err := (*urlDAO).findAllByUser(&userFound)
 	if err != nil {
 		c.HTML(
@@ -40,12 +38,14 @@ func showStatsPage(c *gin.Context) {
 		return
 	}
 
+	urlsFull := urlsToFullStat(&urlStats)
+
 	c.HTML(
 		http.StatusOK,
 		"stats.html",
 		gin.H{
 			"title": "Home",
-			"urls":  urlStats,
+			"urls":  urlsFull,
 		},
 	)
 }

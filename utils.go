@@ -95,3 +95,17 @@ func validateNewUserFields(user, password string) error {
 
 	return nil
 }
+
+func urlsToFullStat(urls *[]URLStat) []URLStatFull {
+	urlFull := make([]URLStatFull, 0)
+
+	for _, u := range *urls {
+		shortURL := idToShortURL(u.shortID, chars)
+		urlFull = append(urlFull, URLStatFull{
+			ShortURL:    shortURL,
+			OriginalURL: u.url,
+		})
+	}
+
+	return urlFull
+}
