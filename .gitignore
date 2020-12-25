@@ -3,3 +3,4 @@ file_watcher.sh
 runner.sh
 
 data/
+.idea/

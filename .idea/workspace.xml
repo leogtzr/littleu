@@ -2,15 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2822979-7920-4771-bf09-1c7eaba8159a" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/config.env" beforeDir="false" afterPath="$PROJECT_DIR$/config.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/inmemory.go" beforeDir="false" afterPath="$PROJECT_DIR$/inmemory.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mongo.go" beforeDir="false" afterPath="$PROJECT_DIR$/mongo.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/psql.go" beforeDir="false" afterPath="$PROJECT_DIR$/psql.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/shorten_url.go" beforeDir="false" afterPath="$PROJECT_DIR$/shorten_url.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stats.go" beforeDir="false" afterPath="$PROJECT_DIR$/stats.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/types.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
