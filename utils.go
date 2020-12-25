@@ -100,10 +100,10 @@ func urlsToFullStat(urls *[]URLStat) []URLStatFull {
 	urlFull := make([]URLStatFull, 0)
 
 	for _, u := range *urls {
-		shortURL := idToShortURL(u.shortID, chars)
+		shortURL := idToShortURL(u.ShortID, chars)
 		urlFull = append(urlFull, URLStatFull{
 			ShortURL:    shortURL,
-			OriginalURL: u.url,
+			OriginalURL: u.Url,
 		})
 	}
 

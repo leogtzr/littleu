@@ -28,7 +28,7 @@ func init() {
 	})
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 
@@ -46,7 +46,7 @@ func init() {
 
 	_, err = redisClient.Ping().Result()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 

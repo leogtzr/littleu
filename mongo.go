@@ -194,10 +194,11 @@ func (dao MongoDBURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error)
 	}
 
 	filter := bson.D{
-		primitive.E{Key: "shortid", Value: userDB.ID},
+		primitive.E{Key: "user_id", Value: userDB.ID},
 	}
 
 	allURLs, err := dao.filterURLs(filter)
+
 	if err != nil {
 		return []URLStat{}, nil
 	}
@@ -210,8 +211,8 @@ func toURLStat(urlDocs *[]URLDocument) []URLStat {
 
 	for _, u := range *urlDocs {
 		urls = append(urls, URLStat{
-			shortID: u.ShortID,
-			url:     u.URL,
+			ShortID: u.ShortID,
+			Url:     u.URL,
 		})
 	}
 
@@ -328,4 +329,23 @@ func (dao MongoUserDaoImpl) validateUserAndPassword(username, password string) (
 	}
 
 	return true, nil
+}
+
+func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
+	filter := bson.D{}
+
+	us := []interface{}{}
+
+	users, err := dao.filterUsers(filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return []interface{}{}, nil
+		}
+	}
+
+	for _, u := range users {
+		us = append(us, u)
+	}
+
+	return us, nil
 }

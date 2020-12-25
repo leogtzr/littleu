@@ -29,15 +29,15 @@ type URLChange struct {
 
 // URLStat ...
 type URLStat struct {
-	shortID int
-	url     string
+	ShortID int     `json:"id"`
+	Url     string	`json:"url"`
 }
 
 // URLStatFull is basically a URLStat but instead of the short ID, it has the short URL corresponding
 // to the short ID value.
 type URLStatFull struct {
-	ShortURL    string
-	OriginalURL string
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 // UserMongo ...

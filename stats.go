@@ -24,7 +24,6 @@ func showStatsPage(c *gin.Context) {
 		return
 	}
 
-	// Document test ...
 	urlStats, err := (*urlDAO).findAllByUser(&userFound)
 	if err != nil {
 		c.HTML(

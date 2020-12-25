@@ -210,8 +210,8 @@ func (dao PostgresqlURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, err
 		}
 
 		urls = append(urls, URLStat{
-			shortID: shortID,
-			url:     url,
+			ShortID: shortID,
+			Url:     url,
 		})
 	}
 

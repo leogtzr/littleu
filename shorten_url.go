@@ -494,7 +494,7 @@ func viewURLs(c *gin.Context) {
 
 	urls, err := (*urlDAO).findAllByUser(&userFound)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
 	c.JSON(http.StatusOK, urls)

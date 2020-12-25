@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -37,8 +35,9 @@ func (im InMemoryURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 }
 
 func (im InMemoryURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error) {
-	_, ok := (*user).(UserInMemory)
+	_, ok := (*user).(*UserInMemory)
 	if !ok {
+		fmt.Println("Here ...")
 		return []URLStat{}, errorIncompatibleTypes()
 	}
 
@@ -48,8 +47,8 @@ func (im InMemoryURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error)
 	// dummy impl...
 	for shortID, url := range im.DB.db {
 		urls = append(urls, URLStat{
-			shortID: shortID,
-			url:     url,
+			ShortID: shortID,
+			Url:     url,
 		})
 	}
 
@@ -142,30 +141,11 @@ func (dao InMemoryUserDAOImpl) validateUserAndPassword(username, password string
 }
 
 func (dao InMemoryUserDAOImpl) findAll() ([]interface{}, error) {
-	users := []interface{}{}
+	var users []interface{}
 
 	for _, v := range dao.db {
 		users = append(users, v)
 	}
 
 	return users, nil
-}
-
-func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
-	filter := bson.D{}
-
-	us := []interface{}{}
-
-	users, err := dao.filterUsers(filter)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return []interface{}{}, nil
-		}
-	}
-
-	for _, u := range users {
-		us = append(us, u)
-	}
-
-	return us, nil
 }
