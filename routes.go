@@ -9,7 +9,7 @@ func initializeRoutes(config *viper.Viper) {
 	router.GET("/api/users", viewUsers)
 	router.GET("/api/urls", viewURLs)
 
-	router.GET("/u/:url", redirectShortURL)
+	router.GET("/u/:url", urlStats(), redirectShortURL)
 	router.GET("/", showIndexPage)
 	router.POST("/u/shorturl", checkUserMiddleware(), shorturl)
 	router.POST("/u/changelink", changeLink)

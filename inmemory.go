@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -37,7 +36,6 @@ func (im InMemoryURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 func (im InMemoryURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error) {
 	_, ok := (*user).(*UserInMemory)
 	if !ok {
-		fmt.Println("Here ...")
 		return []URLStat{}, errorIncompatibleTypes()
 	}
 

@@ -49,3 +49,15 @@ func showStatsPage(c *gin.Context) {
 		},
 	)
 }
+
+func urlStats() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user_logged_in")
+
+		if user == nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "unauthorized"})
+			c.Abort()
+		}
+	}
+}
