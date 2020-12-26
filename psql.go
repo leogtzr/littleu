@@ -173,7 +173,7 @@ func (dao PostgresqlURLDAOImpl) update(id int, oldURL, newURL URL) (int, error) 
 		return id, fmt.Errorf("URL %s already exists, pick a different one", newURL.URL)
 	}
 
-	stmtQuery := `update urls set short_id = $1 where short_id = $2`
+	stmtQuery := `UPDATE urls SET short_id = $1 WHERE short_id = $2`
 
 	_, err = dao.db.Exec(stmtQuery, newID, id)
 	if err != nil {
@@ -223,7 +223,7 @@ func (dao PostgresqlURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, err
 }
 
 func (dao PostgresqlURLDAOImpl) findByID(id int) (URL, error) {
-	query := `select url from urls where short_id = $1`
+	query := `SELECT url FROM urls WHERE short_id = $1`
 	url := URL{}
 
 	err := dao.db.QueryRow(query, id).Scan(&url.URL)

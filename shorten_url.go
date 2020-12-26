@@ -68,12 +68,12 @@ func shorturl(c *gin.Context) {
 	id, _ := (*urlDAO).save(url, &userFound)
 	shortURL := idToShortURL(id, chars)
 
-	fqdn, err := fqdn.FqdnHostname()
+	fqdnHostName, err := fqdn.FqdnHostname()
 	if err != nil {
 		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
-	domain := net.JoinHostPort(fqdn, serverPort)
+	domain := net.JoinHostPort(fqdnHostName, serverPort)
 
 	littleuLink := fmt.Sprintf("%s/u/%s", domain, shortURL)
 
@@ -417,7 +417,7 @@ func register(config *viper.Viper) gin.HandlerFunc {
 
 		newUser, err := (*userDAO).addUser(username, hashPassword)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v", err)
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v", err)
 			c.HTML(http.StatusInternalServerError, "register.html", gin.H{
 				"ErrorTitle":   "Registration Failed",
 				"ErrorMessage": "Error creating user, contact the administrator.",

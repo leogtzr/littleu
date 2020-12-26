@@ -101,7 +101,7 @@ func (dao MongoDBURLDAOImpl) filterURLs(filter interface{}) ([]URLDocument, erro
 	}
 
 	// once exhausted, close the cursor
-	cur.Close(dao.ctx)
+	_ = cur.Close(dao.ctx)
 
 	if len(urls) == 0 {
 		return urls, mongo.ErrNoDocuments
@@ -133,10 +133,10 @@ func (dao MongoDBURLDAOImpl) findByID(id int) (URL, error) {
 func (dao MongoDBURLDAOImpl) getMaxShortID() (int, error) {
 	var url URLDocument
 
-	options := options.FindOne()
-	options.SetSort(bson.D{{"shortid", -1}})
+	sortOptions := options.FindOne()
+	sortOptions.SetSort(bson.D{{"shortid", -1}})
 
-	err := dao.collection.FindOne(dao.ctx, bson.D{}, options).Decode(&url)
+	err := dao.collection.FindOne(dao.ctx, bson.D{}, sortOptions).Decode(&url)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return 0, nil
@@ -269,7 +269,7 @@ func (dao MongoUserDaoImpl) filterUsers(filter interface{}) ([]UserMongo, error)
 	}
 
 	// once exhausted, close the cursor
-	cur.Close(dao.ctx)
+	_ = cur.Close(dao.ctx)
 
 	if len(users) == 0 {
 		return users, mongo.ErrNoDocuments

@@ -14,7 +14,7 @@ import (
 
 type randGenSrc struct{}
 
-func (s *randGenSrc) Seed(seed int64) {}
+func (s *randGenSrc) Seed(int64) {}
 
 func (s *randGenSrc) Uint64() (value uint64) {
 	_ = binary.Read(rand.Reader, binary.BigEndian, &value)

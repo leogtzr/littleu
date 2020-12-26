@@ -40,7 +40,7 @@ func (im InMemoryURLDAOImpl) findAllByUser(user *interface{}) ([]URLStat, error)
 	}
 
 	// shortID:int, url:string
-	urls := []URLStat{}
+	var urls []URLStat
 
 	// dummy impl...
 	for shortID, url := range im.DB.db {
