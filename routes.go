@@ -8,6 +8,7 @@ func initializeRoutes(config *viper.Viper) {
 	router.POST("/api/login", generateToken)
 	router.GET("/api/users", viewUsers)
 	router.GET("/api/urls", viewURLs)
+	router.GET("/api/stats", viewStats)
 
 	router.GET("/u/:url", urlStats(), redirectShortURL)
 	router.GET("/", ensureNotLoggedIn(), showIndexPage)

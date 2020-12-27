@@ -42,6 +42,7 @@ type UserDAO interface {
 // StatsDAO ...
 type StatsDAO interface {
 	save(URL string, headers *map[string][]string, user *interface{}) (int, error)
+	findByShortID(id int) ([]interface{}, error)
 }
 
 func factoryStatsDao(engine string, config *viper.Viper) *StatsDAO {
@@ -49,11 +50,44 @@ func factoryStatsDao(engine string, config *viper.Viper) *StatsDAO {
 
 	switch engine {
 	case "memory":
-		dao = StatsDAOMemoryImpl{}
+		dao = StatsDAOMemoryImpl{
+			db: map[int][]StatsInMemory{},
+		}
 	case "mongo":
-		dao = StatsMongoImpl{}
+		var err error
+
+		mongoClientOptions = options.Client().ApplyURI(config.GetString("MONGO_URI"))
+
+		mongoClient, err = mongo.Connect(ctx, mongoClientOptions)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = mongoClient.Ping(ctx, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var collection *mongo.Collection
+		collection = mongoClient.Database("littleu").Collection("stats")
+		dao = StatsMongoImpl{
+			collection: collection,
+			ctx:        ctx,
+		}
 	case "postgresql":
-		dao = StatsPostgresqlImpl{}
+		dsn := config.GetString("POSTGRES_DSN")
+		if dsn == "" {
+			log.Fatalf("POSTGRES_DSN environtment variable is not set")
+		}
+
+		db, err := sql.Open("postgres", dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dao = StatsPostgresqlImpl{
+			db,
+		}
 	default:
 		log.Fatalf("error: wrong engine: %s", engine)
 

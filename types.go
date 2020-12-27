@@ -84,6 +84,13 @@ type StatsPostgresql struct {
 	UserID		int
 }
 
+// StatsInMemory ...
+type StatsInMemory struct {
+	CreatedAt	time.Time
+	ShortID		int
+	Headers		map[string][]string
+}
+
 // StatsHeadersPostgresql ...
 type StatsHeadersPostgresql struct {
 	/*
@@ -96,13 +103,4 @@ type StatsHeadersPostgresql struct {
 	        REFERENCES stats (id)
 	 */
 
-}
-
-// StatsInMemory ...
-type StatsInMemory struct {
-	ID			int
-	CreatedAt	time.Time
-	ShortID		int
-	UserID		int
-	Headers		map[string][]string
 }

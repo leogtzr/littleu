@@ -27,9 +27,9 @@ type MongoUserDaoImpl struct {
 
 // StatsPostgresqlImpl ...
 type StatsMongoImpl struct {
-
+	collection *mongo.Collection
+	ctx        context.Context
 }
-
 
 // URLExists ...
 func (dao MongoDBURLDAOImpl) URLExists(urlID int) (bool, error) {
@@ -358,4 +358,8 @@ func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
 
 func (dao StatsMongoImpl) save(URL string, headers *map[string][]string, user *interface{}) (int, error) {
 	return -1, nil
+}
+
+func (dao StatsMongoImpl) findByShortID(shortID int) ([]interface{}, error) {
+	return []interface{}{}, nil
 }

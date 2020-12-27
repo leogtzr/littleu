@@ -21,7 +21,7 @@ type PostgresqlURLDAOImpl struct {
 
 // StatsPostgresqlImpl ...
 type StatsPostgresqlImpl struct {
-
+	db *sql.DB
 }
 
 func (dao PostgresqlUserImpl) addUser(username, password string) (interface{}, error) {
@@ -298,4 +298,8 @@ func (dao PostgresqlUserImpl) findAll() ([]interface{}, error) {
 
 func (dao StatsPostgresqlImpl) save(URL string, headers *map[string][]string, user *interface{}) (int, error) {
 	return -1, nil
+}
+
+func (dao StatsPostgresqlImpl) findByShortID(shortID int) ([]interface{}, error) {
+	return []interface{}{}, nil
 }

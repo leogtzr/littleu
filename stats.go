@@ -92,3 +92,28 @@ func urlStats() gin.HandlerFunc {
 		fmt.Println("debug headers - end")
 	}
 }
+
+func viewStats(c *gin.Context) {
+	session := sessions.Default(c)
+	userFound := session.Get("user_logged_in")
+
+	if userFound == nil {
+		c.HTML(
+			http.StatusInternalServerError,
+			"error5xx.html",
+			gin.H{
+				"title":             "Error",
+				"error_description": `You have to be logged in.`,
+			},
+		)
+
+		return
+	}
+
+	stats, err := (*statsDAO).findByShortID(-1)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
