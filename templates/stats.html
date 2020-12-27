@@ -46,7 +46,9 @@
             <div id="collapse{{$i}}" class="collapse" aria-labelledby="headingOne-{{$i}}" data-parent="#accordionURLstat">
               <div class="card-body">
                 <p>
-                  <strong>{{$u.ShortURL}}</strong> - <a href={{$u.OriginalURL}} target="_blank">{{$u.OriginalURL}}</a>
+                  <strong>[<a href="u/{{ $u.ShortURL }}" target="_blank">{{$u.ShortURL}}</a>]
+                  </strong> - <a href={{$u.OriginalURL}} target="_blank">{{$u.OriginalURL}}</a>
+                  <strong></strong>
                 </p>
               </div>
             </div>

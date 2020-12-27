@@ -66,3 +66,43 @@ type UserInMemory struct {
 	User      string
 	Password  string
 }
+
+// StatsMongo ...
+type StatsMongo struct {
+	ID			primitive.ObjectID	`bson:"_id"`
+	CreatedAt	time.Time          	`bson:"created_at"`
+	ShortID		int					`bson:"shortid"`
+	UserID		int					`bson:"user_id"`
+	Headers		map[string][]string `bson:"req_info"`
+}
+
+// StatsPostgresql ...
+type StatsPostgresql struct {
+	ID        	int
+	CreatedAt 	time.Time
+	ShortID   	int
+	UserID		int
+}
+
+// StatsHeadersPostgresql ...
+type StatsHeadersPostgresql struct {
+	/*
+		id serial PRIMARY KEY NOT NULL,
+		name varchar(150) NOT NULL,
+		value varchar(500) NOT NULL,
+		stat_id int NOT NULL,
+	    constraint fk_stats_headers
+	        foreign key (stat_id)
+	        REFERENCES stats (id)
+	 */
+
+}
+
+// StatsInMemory ...
+type StatsInMemory struct {
+	ID			int
+	CreatedAt	time.Time
+	ShortID		int
+	UserID		int
+	Headers		map[string][]string
+}

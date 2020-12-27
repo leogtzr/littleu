@@ -22,6 +22,7 @@ var (
 	envConfig *viper.Viper
 	urlDAO    *URLDao
 	userDAO   *UserDAO
+	statsDAO  *StatsDAO
 
 	serverPort string
 

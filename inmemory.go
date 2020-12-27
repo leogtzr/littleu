@@ -22,6 +22,11 @@ type InMemoryUserDAOImpl struct {
 	rndIDGen randGenSrc
 }
 
+// StatsDAOMemoryImpl ...
+type StatsDAOMemoryImpl struct {
+
+}
+
 func (im InMemoryURLDAOImpl) save(url URL, user *interface{}) (int, error) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -146,4 +151,8 @@ func (dao InMemoryUserDAOImpl) findAll() ([]interface{}, error) {
 	}
 
 	return users, nil
+}
+
+func (dao StatsDAOMemoryImpl) save(URL string, headers *map[string][]string, user *interface{}) (int, error) {
+	return -1, nil
 }

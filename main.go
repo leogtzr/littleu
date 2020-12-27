@@ -55,6 +55,7 @@ func init() {
 	// Initialize DB:
 	urlDAO = factoryURLDao(envConfig.GetString("dbengine"), envConfig)
 	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
+	statsDAO = factoryStatsDao(envConfig.GetString("dbengine"), envConfig)
 
 	gob.Register(&UserMongo{})
 	gob.Register(&UserPostgresql{})

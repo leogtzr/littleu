@@ -39,6 +39,30 @@ type UserDAO interface {
 	findAll() ([]interface{}, error)
 }
 
+// StatsDAO ...
+type StatsDAO interface {
+	save(URL string, headers *map[string][]string, user *interface{}) (int, error)
+}
+
+func factoryStatsDao(engine string, config *viper.Viper) *StatsDAO {
+	var dao StatsDAO
+
+	switch engine {
+	case "memory":
+		dao = StatsDAOMemoryImpl{}
+	case "mongo":
+		dao = StatsMongoImpl{}
+	case "postgresql":
+		dao = StatsPostgresqlImpl{}
+	default:
+		log.Fatalf("error: wrong engine: %s", engine)
+
+		return nil
+	}
+
+	return &dao
+}
+
 func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 	var dao URLDao
 

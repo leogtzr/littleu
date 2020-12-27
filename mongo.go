@@ -25,6 +25,12 @@ type MongoUserDaoImpl struct {
 	ctx        context.Context
 }
 
+// StatsPostgresqlImpl ...
+type StatsMongoImpl struct {
+
+}
+
+
 // URLExists ...
 func (dao MongoDBURLDAOImpl) URLExists(urlID int) (bool, error) {
 	filter := bson.D{
@@ -348,4 +354,8 @@ func (dao MongoUserDaoImpl) findAll() ([]interface{}, error) {
 	}
 
 	return us, nil
+}
+
+func (dao StatsMongoImpl) save(URL string, headers *map[string][]string, user *interface{}) (int, error) {
+	return -1, nil
 }

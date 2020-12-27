@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="d2822979-7920-4771-bf09-1c7eaba8159a" name="Default Changelist" comment="">
+    <list default="true" id="cc399f71-4e35-4fbc-b440-fbb9cfb701d3" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/littleu.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/littleu.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.env" beforeDir="false" afterPath="$PROJECT_DIR$/config.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dao.go" beforeDir="false" afterPath="$PROJECT_DIR$/dao.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/inmemory.go" beforeDir="false" afterPath="$PROJECT_DIR$/inmemory.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mongo.go" beforeDir="false" afterPath="$PROJECT_DIR$/mongo.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/psql.go" beforeDir="false" afterPath="$PROJECT_DIR$/psql.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/shorten_url.go" beforeDir="false" afterPath="$PROJECT_DIR$/shorten_url.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/routes.go" beforeDir="false" afterPath="$PROJECT_DIR$/routes.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stats.go" beforeDir="false" afterPath="$PROJECT_DIR$/stats.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/stats.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/stats.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/types.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vars.go" beforeDir="false" afterPath="$PROJECT_DIR$/vars.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +28,7 @@
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="false" />
   </component>
-  <component name="ProjectId" id="1m9mHRFDipaVGaa76TldliInV5z" />
+  <component name="ProjectId" id="1mE0ZWO9c9oKCdHZlwViDfSIsKc" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -35,8 +41,7 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="editor.preferences.folding" />
+    <property name="last_opened_file_path" value="$USER_HOME$" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">

@@ -10,7 +10,7 @@ func initializeRoutes(config *viper.Viper) {
 	router.GET("/api/urls", viewURLs)
 
 	router.GET("/u/:url", urlStats(), redirectShortURL)
-	router.GET("/", showIndexPage)
+	router.GET("/", ensureNotLoggedIn(), showIndexPage)
 	router.POST("/u/shorturl", checkUserMiddleware(), shorturl)
 	router.POST("/u/changelink", changeLink)
 	router.POST("/login", login(config))
@@ -21,5 +21,5 @@ func initializeRoutes(config *viper.Viper) {
 	router.GET("/session", checkSession)
 
 	// stats URLs
-	router.GET("/stats", showStatsPage)
+	router.GET("/stats", showStatsPage(config))
 }
