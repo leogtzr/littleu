@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/Showmax/go-fqdn"
 	"github.com/spf13/viper"
 	"net"
@@ -69,7 +68,18 @@ func urlStats() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		shortURLParam := c.Param("url")
-		fmt.Printf("The url to redirect to is: [%s]\n", shortURLParam)
+		if shortURLParam == "" {
+			c.HTML(
+				http.StatusInternalServerError,
+				"error5xx.html",
+				gin.H{
+					"title":             "Error",
+					"error_description": `error: missing url argument to redirect to`,
+				},
+			)
+
+			return
+		}
 
 		session := sessions.Default(c)
 		user := session.Get("user_logged_in")
@@ -78,18 +88,8 @@ func urlStats() gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"message": "unauthorized"})
 			c.Abort()
 		}
-
-		// @TODO: remove the following code.
-		fmt.Println("debug headers - begin")
-
-		for headerName, headers := range c.Request.Header {
-			fmt.Printf("header -> [%s]\n", headerName)
-			for _, header := range headers {
-				fmt.Printf("\t[%s]\n", header)
-			}
-		}
-
-		fmt.Println("debug headers - end")
+		headers := map[string][]string(c.Request.Header)
+		(*statsDAO).save(shortURLParam, &headers, &user)
 	}
 }
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net"
 	"os"
@@ -52,10 +54,22 @@ func init() {
 
 	ctx = context.TODO()
 
+	mongoClientOptions := options.Client().ApplyURI(envConfig.GetString("MONGO_URI"))
+
+	mongoClient, err := mongo.Connect(ctx, mongoClientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = mongoClient.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Initialize DB:
-	urlDAO = factoryURLDao(envConfig.GetString("dbengine"), envConfig)
-	userDAO = factoryUserDAO(envConfig.GetString("dbengine"), envConfig)
-	statsDAO = factoryStatsDao(envConfig.GetString("dbengine"), envConfig)
+	urlDAO = factoryURLDao(mongoClient, envConfig)
+	userDAO = factoryUserDAO(mongoClient, envConfig)
+	statsDAO = factoryStatsDao(mongoClient, envConfig)
 
 	gob.Register(&UserMongo{})
 	gob.Register(&UserPostgresql{})

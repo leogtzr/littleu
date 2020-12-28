@@ -24,7 +24,7 @@ type InMemoryUserDAOImpl struct {
 
 // StatsDAOMemoryImpl ...
 type StatsDAOMemoryImpl struct {
-	// map[short_id:int][]StatsInMemory
+	// map[userID:int][]StatsInMemory
 	db map[int][]StatsInMemory
 }
 
@@ -154,12 +154,32 @@ func (dao InMemoryUserDAOImpl) findAll() ([]interface{}, error) {
 	return users, nil
 }
 
-// TODO: missing impl
-func (dao StatsDAOMemoryImpl) save(URL string, headers *map[string][]string, user *interface{}) (int, error) {
-	return -1, nil
+func (dao StatsDAOMemoryImpl) save(shortURL string, headers *map[string][]string, user *interface{}) (int, error) {
+	urlShortID := shortURLToID(shortURL, chars)
+
+	u, ok := (*user).(*UserInMemory)
+	if !ok {
+		return -1, errorIncompatibleTypes()
+	}
+
+	statsHeaderByShortID := dao.db[int(u.ID)]
+	stat := StatsInMemory{
+		CreatedAt: time.Now(),
+		ShortID: urlShortID,
+		UserID: int(u.ID),
+		Headers: *headers,
+	}
+
+	statsHeaderByShortID = append(statsHeaderByShortID, stat)
+
+	return 0, nil
 }
 
 // TODO: missing impl
 func (dao StatsDAOMemoryImpl) findByShortID(shortID int) ([]interface{}, error) {
+	return []interface{}{}, nil
+}
+
+func (dao StatsDAOMemoryImpl) findAllByUser(user *interface{}) ([]interface{}, error) {
 	return []interface{}{}, nil
 }

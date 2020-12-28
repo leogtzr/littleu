@@ -88,6 +88,7 @@ type StatsPostgresql struct {
 type StatsInMemory struct {
 	CreatedAt	time.Time
 	ShortID		int
+	UserID 		int
 	Headers		map[string][]string
 }
 

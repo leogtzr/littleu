@@ -7,8 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
@@ -26,7 +24,5 @@ var (
 
 	serverPort string
 
-	mongoClientOptions *options.ClientOptions
-	mongoClient        *mongo.Client
 	ctx                context.Context
 )

@@ -9,7 +9,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type randGenSrc struct{}
@@ -41,12 +40,15 @@ type UserDAO interface {
 
 // StatsDAO ...
 type StatsDAO interface {
-	save(URL string, headers *map[string][]string, user *interface{}) (int, error)
+	save(shortURL string, headers *map[string][]string, user *interface{}) (int, error)
 	findByShortID(id int) ([]interface{}, error)
+	findAllByUser(user *interface{}) ([]interface{}, error)
 }
 
-func factoryStatsDao(engine string, config *viper.Viper) *StatsDAO {
+func factoryStatsDao(mongoClient *mongo.Client, config *viper.Viper) *StatsDAO {
 	var dao StatsDAO
+
+	engine := config.GetString("dbengine")
 
 	switch engine {
 	case "memory":
@@ -54,20 +56,6 @@ func factoryStatsDao(engine string, config *viper.Viper) *StatsDAO {
 			db: map[int][]StatsInMemory{},
 		}
 	case "mongo":
-		var err error
-
-		mongoClientOptions = options.Client().ApplyURI(config.GetString("MONGO_URI"))
-
-		mongoClient, err = mongo.Connect(ctx, mongoClientOptions)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = mongoClient.Ping(ctx, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		var collection *mongo.Collection
 		collection = mongoClient.Database("littleu").Collection("stats")
 		dao = StatsMongoImpl{
@@ -97,8 +85,10 @@ func factoryStatsDao(engine string, config *viper.Viper) *StatsDAO {
 	return &dao
 }
 
-func factoryURLDao(engine string, config *viper.Viper) *URLDao {
+func factoryURLDao(mongoClient *mongo.Client, config *viper.Viper) *URLDao {
 	var dao URLDao
+
+	engine := config.GetString("dbengine")
 
 	switch engine {
 	case "memory":
@@ -108,20 +98,6 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 			},
 		}
 	case "mongo":
-		var err error
-
-		mongoClientOptions = options.Client().ApplyURI(config.GetString("MONGO_URI"))
-
-		mongoClient, err = mongo.Connect(ctx, mongoClientOptions)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = mongoClient.Ping(ctx, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		var collection *mongo.Collection
 		collection = mongoClient.Database("littleu").Collection("url")
 		dao = MongoDBURLDAOImpl{
@@ -152,8 +128,10 @@ func factoryURLDao(engine string, config *viper.Viper) *URLDao {
 	return &dao
 }
 
-func factoryUserDAO(engine string, config *viper.Viper) *UserDAO {
+func factoryUserDAO(mongoClient *mongo.Client, config *viper.Viper) *UserDAO {
 	var userDAO UserDAO
+
+	engine := config.GetString("dbengine")
 
 	switch engine {
 	case "memory":

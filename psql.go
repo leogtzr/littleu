@@ -303,3 +303,7 @@ func (dao StatsPostgresqlImpl) save(URL string, headers *map[string][]string, us
 func (dao StatsPostgresqlImpl) findByShortID(shortID int) ([]interface{}, error) {
 	return []interface{}{}, nil
 }
+
+func (dao StatsPostgresqlImpl) findAllByUser(user *interface{}) ([]interface{}, error) {
+	return []interface{}{}, nil
+}

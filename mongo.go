@@ -363,3 +363,7 @@ func (dao StatsMongoImpl) save(URL string, headers *map[string][]string, user *i
 func (dao StatsMongoImpl) findByShortID(shortID int) ([]interface{}, error) {
 	return []interface{}{}, nil
 }
+
+func (dao StatsMongoImpl) findAllByUser(user *interface{}) ([]interface{}, error) {
+	return []interface{}{}, nil
+}
