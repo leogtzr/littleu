@@ -88,7 +88,10 @@ func urlStats() gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"message": "unauthorized"})
 			c.Abort()
 		}
+
 		headers := map[string][]string(c.Request.Header)
+		// As of now, all the headers are being saved, we might want to consider to save only a few, such as:
+		// Referrer, User-Agent, etc
 		(*statsDAO).save(shortURLParam, &headers, &user)
 	}
 }
@@ -110,7 +113,7 @@ func viewStats(c *gin.Context) {
 		return
 	}
 
-	stats, err := (*statsDAO).findByShortID(-1)
+	stats, err := (*statsDAO).findAllByUser(&userFound)
 	if err != nil {
 		_ = c.AbortWithError(http.StatusInternalServerError, err)
 	}
